@@ -290,6 +290,17 @@ static void OpenCreateDialog() {
     if (g_app.loaded) {
         snprintf(g_app.createSerial, sizeof(g_app.createSerial), "%s", g_app.cp.header.serial.c_str());
         snprintf(g_app.createModel, sizeof(g_app.createModel), "%s", g_app.cp.header.model.c_str());
+        // Match Band/Radio/Type to the model so the dialog reflects the radio.
+        for (const auto& m : ModelCatalog()) {
+            if (g_app.cp.header.model != m.model) continue;
+            for (int i = 0; i < (int)BandOptions().size(); ++i)
+                if (BandOptions()[i] == m.band) g_app.createBand = i;
+            for (int i = 0; i < (int)RadioOptions().size(); ++i)
+                if (RadioOptions()[i] == m.radio) g_app.createRadio = i;
+            for (int i = 0; i < (int)TypeOptions().size(); ++i)
+                if (TypeOptions()[i] == m.type) g_app.createType = i;
+            break;
+        }
         std::string fc = GetFlashcode(g_app.cp);
         snprintf(g_app.createFlash, sizeof(g_app.createFlash), "%s", fc.c_str());
         snprintf(g_app.fcBase, sizeof(g_app.fcBase), "%s", fc.c_str());
