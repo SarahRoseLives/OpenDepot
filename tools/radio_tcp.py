@@ -587,6 +587,7 @@ def main():
             ok += 1
         open(native_read, 'wb').write(rec)
         print("native read records:", ok, "bytes:", len(rec), flush=True)
+        req(bytes.fromhex("010601"), 3.0)  # end program mode
         link.s.close()
         return
 
