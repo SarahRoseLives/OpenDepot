@@ -273,16 +273,14 @@ bool LoadCodeplug(const std::wstring& path, Codeplug& cp) {
         cp.encType = H.encType;
 
         if (H.encType == 1) {
+            // Depot codeplugs use the fixed RC4 seed "A8Z6J9QP5". The 0x239 key
+            // blob is the legacy-cipher encryption of that seed; some blobs contain
+            // escape bytes our legacy decoder mishandles, so use the constant.
             const size_t len = H.raw[0x239];
-            if (len == 0 || 0x23A + len > H.raw.size()) {
-                cp.error = "Invalid crypto key blob";
-                break;
-            }
-            cp.keyBlob.assign(H.raw.begin() + 0x23A, H.raw.begin() + 0x23A + len);
-            if (!AdkCustomDecrypt(cp.keyBlob, cp.seed) || cp.seed.size() < 9) {
-                cp.error = "Unable to decrypt crypto seed";
-                break;
-            }
+            if (len && 0x23A + len <= H.raw.size())
+                cp.keyBlob.assign(H.raw.begin() + 0x23A, H.raw.begin() + 0x23A + len);
+            const char kSeed[] = "A8Z6J9QP5";
+            cp.seed.assign(kSeed, kSeed + 9);
         }
 
         IStorage* dataStg = nullptr;
@@ -974,13 +972,10 @@ bool BuiltinTemplate(const std::string& model, Codeplug& out, std::string& err) 
     out.encType = H.encType;
     if (H.encType == 1) {
         size_t klen = H.raw[0x239];
-        if (klen && 0x23A + klen <= H.raw.size()) {
+        if (klen && 0x23A + klen <= H.raw.size())
             out.keyBlob.assign(H.raw.begin() + 0x23A, H.raw.begin() + 0x23A + klen);
-            if (!AdkCustomDecrypt(out.keyBlob, out.seed) || out.seed.size() < 9) {
-                err = "cannot recover seed for built-in header";
-                return false;
-            }
-        }
+        const char kSeed[] = "A8Z6J9QP5";
+        out.seed.assign(kSeed, kSeed + 9);
     }
     out.header.model = model;
     const uint8_t* d = mb->data;

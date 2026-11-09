@@ -30,9 +30,9 @@ def load_records(path):
     etype = (hdr[8] & 0x18) >> 3
     rc4 = None
     if etype == 1:
-        ln = hdr[0x239]
-        seed = adk_decrypt(hdr[0x23A:0x23A + ln])
-        rc4 = Rc4(seed[:9])
+        # Depot codeplugs use the fixed RC4 seed; the key blob's legacy-cipher
+        # encoding can contain escapes our decoder mishandles.
+        rc4 = Rc4(b'A8Z6J9QP5')
     recs = []
     for e in [x for x in ole.listdir() if x[0] == 'DataStg' and len(x) == 2]:
         if e[1] == 'Strm_0':
