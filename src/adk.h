@@ -45,6 +45,16 @@ bool UpdateIdentity(Codeplug& cp, const std::string& serial, const std::string& 
 bool ReadIdentityFromCodeplug(const Codeplug& cp, std::string& serial, std::string& model);
 bool ValidateRadioCodeplug(const Codeplug& cp, std::string& err);
 
+// Codeplug read/write passcode lives in record 0x00510000 (partition 0x80):
+// payload[0] = enabled, payload[1..] = ASCII password (zero padded).
+struct CodeplugPassword {
+    bool present = false;
+    bool enabled = false;
+    std::string password;
+};
+bool GetCodeplugPassword(const Codeplug& cp, CodeplugPassword& out);
+bool SetCodeplugPassword(Codeplug& cp, bool enabled, const std::string& password);
+
 struct FeatureInfo {
     int nibble;
     int bit;

@@ -104,6 +104,11 @@ struct App {
     std::vector<uint8_t> createAdd;
     std::string createError;
 
+    bool showPasscodeSet = false;
+    char passcodeInput[64] = {};
+    bool showPasscodeResult = false;
+    std::string passcodeResult;
+
     char radioPort[16] = "COM20";
     bool radioBusy = false;
     bool showWriteConfirm = false;
@@ -720,6 +725,98 @@ static void CancelRadio() {
     g_app.radioStatus = "Cancelling...";
 }
 
+static std::atomic<bool> g_pwDone{false};
+static bool g_pwOk = false;
+static std::string g_pwResult;
+static std::thread g_pwThread;
+
+static void StartPasscodeRead() {
+    if (g_app.radioBusy) return;
+    g_app.radioBusy = true;
+    g_app.radioStatus = "Reading passcode...";
+    g_app.status = g_app.radioStatus;
+    g_pwDone = false; g_pwOk = false; g_pwResult.clear();
+    const std::string port(g_app.radioPort);
+    g_pwThread = std::thread([port]() {
+        const std::wstring out = GuiTemp(L"pw-read.cpg");
+        std::string e;
+        std::wstring args = L"--read-radio " + std::wstring(port.begin(), port.end()) + L" \"" + out + L"\"";
+        if (!RunCli(args, e)) {
+            g_pwResult = "read failed: " + e; g_pwOk = false;
+        } else {
+            Codeplug cp;
+            if (!LoadCodeplug(out, cp)) {
+                g_pwResult = "unreadable codeplug: " + cp.error; g_pwOk = false;
+            } else {
+                CodeplugPassword pw;
+                if (!GetCodeplugPassword(cp, pw)) {
+                    g_pwResult = "no passcode record (0x00510000)"; g_pwOk = false;
+                } else {
+                    g_pwResult = std::string("enabled=") + (pw.enabled ? "1" : "0") +
+                                 "  passcode='" + pw.password + "'";
+                    g_pwOk = true;
+                }
+            }
+        }
+        g_pwDone = true;
+    });
+}
+
+static void PollPasscodeJob() {
+    if (!g_pwDone.load()) return;
+    if (g_pwThread.joinable()) g_pwThread.join();
+    g_app.radioBusy = false;
+    g_app.passcodeResult = "Radio passcode: " + g_pwResult;
+    g_app.showPasscodeResult = true;
+    g_app.status = g_app.passcodeResult;
+}
+
+static void SetPasscodeOpen(const std::string& pw) {
+    if (!g_app.loaded) { g_app.status = "Open a codeplug first."; return; }
+    if (!SetCodeplugPassword(g_app.cp, true, pw)) {
+        g_app.status = "No passcode record (0x00510000).";
+        return;
+    }
+    g_app.status = "Passcode set in the codeplug. Save / Write to Radio to apply.";
+}
+
+static void ClearPasscodeOpen() {
+    if (!g_app.loaded) { g_app.status = "Open a codeplug first."; return; }
+    if (!SetCodeplugPassword(g_app.cp, false, "")) {
+        g_app.status = "No passcode record (0x00510000).";
+        return;
+    }
+    g_app.status = "Passcode cleared in the codeplug. Save / Write to Radio to apply.";
+}
+
+static void DrawPasscodeDialogs() {
+    if (g_app.showPasscodeSet) {
+        ImGui::OpenPopup("Set Passcode");
+        g_app.showPasscodeSet = false;
+    }
+    if (ImGui::BeginPopupModal("Set Passcode", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::TextUnformatted("Set the codeplug passcode on the open codeplug.");
+        ImGui::InputText("Passcode", g_app.passcodeInput, sizeof(g_app.passcodeInput));
+        if (ImGui::Button("Set")) {
+            SetPasscodeOpen(g_app.passcodeInput);
+            g_app.passcodeInput[0] = 0;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+    }
+    if (g_app.showPasscodeResult) {
+        ImGui::OpenPopup("Passcode");
+        g_app.showPasscodeResult = false;
+    }
+    if (ImGui::BeginPopupModal("Passcode", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::TextUnformatted(g_app.passcodeResult.c_str());
+        if (ImGui::Button("Close")) ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+    }
+}
+
 static void DrawRadioConfirm() {
     if (g_app.showWriteConfirm) {
         ImGui::OpenPopup("Write to Radio");
@@ -747,6 +844,7 @@ static void DrawRadioConfirm() {
 
 static void DrawUI() {
     PollRadioJob();
+    PollPasscodeJob();
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
     ImGui::Begin("OpenDepot", nullptr,
@@ -797,6 +895,12 @@ static void DrawUI() {
             const bool canWrite = g_app.loaded && !g_app.radioBusy;
             if (ImGui::MenuItem("Read from Radio...", nullptr, false, canRead)) StartRadioJob(false);
             if (ImGui::MenuItem("Write to Radio...", nullptr, false, canWrite)) g_app.showWriteConfirm = true;
+            ImGui::Separator();
+            if (ImGui::MenuItem("Read Passcode from Radio", nullptr, false, canRead)) StartPasscodeRead();
+            if (ImGui::MenuItem("Set Passcode...", nullptr, false, g_app.loaded && !g_app.radioBusy))
+                g_app.showPasscodeSet = true;
+            if (ImGui::MenuItem("Clear Passcode", nullptr, false, g_app.loaded && !g_app.radioBusy))
+                ClearPasscodeOpen();
             if (g_app.radioBusy) {
                 if (ImGui::MenuItem("Cancel")) CancelRadio();
                 ImGui::TextUnformatted(g_app.radioStatus.c_str());
@@ -811,6 +915,7 @@ static void DrawUI() {
 
     DrawCreateDialog();
     DrawRadioConfirm();
+    DrawPasscodeDialogs();
 
     if (!g_app.loaded) {
         ImGui::TextWrapped("Open an ASTRO 25 .cpg codeplug. OpenDepot decodes the ADK compound "

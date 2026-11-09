@@ -65,6 +65,8 @@ Not implemented:
 - Back up and restore a codeplug.
 - Recover a radio whose codeplug identity block is damaged, by writing a
   verified, matching codeplug back.
+- Read, set, or clear the codeplug read/write **passcode** (record
+  `0x00510000`), entirely from the codeplug.
 
 ## Supported models (built-in model database)
 
@@ -161,6 +163,10 @@ opendepot-cli --set-zone-name <in.cpg> <out.cpg> <zoneIndex> <name>
 opendepot-cli --set-channel-name <in.cpg> <out.cpg> <zoneIndex> <chanIndex> <name>
 opendepot-cli --set-channel-freq <in.cpg> <out.cpg> <zoneIndex> <chanIndex> <rxMHz> <txMHz>
 opendepot-cli --set-identity <in.cpg> <out.cpg> <serial> <model>
+opendepot-cli --password <in.cpg>
+opendepot-cli --set-password <in.cpg> <out.cpg> <password>
+opendepot-cli --clear-password <in.cpg> <out.cpg>
+opendepot-cli --radio-password <port>
 opendepot-cli --flashcode <in.cpg> [radio|platform]
 opendepot-cli --set-flashcode <in.cpg> <out.cpg> <flashcode>
 opendepot-cli --flashcode-options <radio|platform>
@@ -202,6 +208,26 @@ opendepot-cli --replace-radio <port> <old.cpg> <new.cpg>
 The Create dialog takes Band / Radio / Type / Model / Serial / FLASHcode and
 optional packages/add-ons. When a codeplug is open, it prefills from the read
 (serial, model, FLASHcode) and derives band from the first channel frequency.
+
+## Codeplug passcode
+
+The codeplug read/write passcode is stored as codeplug record **`0x00510000`**
+(partition `0x80`): `payload[0]` = enabled flag, `payload[1..]` = ASCII password,
+zero padded. That is exactly what the vendor `CRcmpBundler::GetRadioPassword`
+reads (a read of partition `0x80` / tag `0x51` / instance `0`). OpenDepot reads
+and edits the record directly from the codeplug; no vendor DLL is involved.
+
+- `--password <in.cpg>` — show the enabled flag and passcode.
+- `--set-password <in.cpg> <out.cpg> <password>` — set it.
+- `--clear-password <in.cpg> <out.cpg>` — clear it.
+- `--radio-password <port>` — native read of the radio's passcode (does a full
+  read and parses record `0x00510000`).
+- GUI: **Radio → Read Passcode from Radio / Set Passcode… / Clear Passcode**.
+
+Set/clear only changes the codeplug; **Save As** or **Write to Radio** applies
+it. Whether a radio with a passcode set still allows this native read is
+untested; if it blocks the read, recovery needs a codeplug that was read while
+the radio was unlocked.
 
 ## Radio transport (recovered)
 

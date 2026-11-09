@@ -286,6 +286,36 @@ class RadioHelper {
                 return 0;
             } catch (Exception e) { Console.Error.WriteLine("authprobe error: " + e.GetType().Name + ": " + e.Message); return 3; }
         }
+        if (mode == "--getpw" || mode == "--unlock" || mode == "--security") {
+            try {
+                using (var s = new Session(port)) {
+                    if (mode != "--unlock") {
+                        string pw = ""; ushort en = 0;
+                        try { s.B.GetRadioPassword(ref pw, ref en); Console.WriteLine("GetRadioPassword enabled=" + en + " password='" + pw + "'"); }
+                        catch (Exception e) { Console.WriteLine("GetRadioPassword EX " + e.Message); }
+                    }
+                    if (mode == "--unlock" || mode == "--security") {
+                        try { object lk = null; int hr = s.B.UnLockRadio(ref lk); Console.WriteLine("UnLockRadio hr=0x" + hr.ToString("X8") + " r=" + Fmt(lk)); }
+                        catch (Exception e) { Console.WriteLine("UnLockRadio EX " + e.Message); }
+                    }
+                    if (mode == "--security") {
+                        try { object key = null; int hr = s.B.ReadRadioKey(ref key); Console.WriteLine("ReadRadioKey hr=0x" + hr.ToString("X8") + " key=" + Fmt(key)); }
+                        catch (Exception e) { Console.WriteLine("ReadRadioKey EX " + e.Message); }
+                        try { object d = null; int hr = s.B.ReadWriteRadioDateCode(ref d, 1); Console.WriteLine("DateCode hr=0x" + hr.ToString("X8") + " d=" + Fmt(d)); }
+                        catch (Exception e) { Console.WriteLine("DateCode EX " + e.Message); }
+                        try { object a0 = null; int hr = s.B.ReadWriteCalcAuthCode(ref a0, 0); Console.WriteLine("CalcAuth(0) hr=0x" + hr.ToString("X8") + " a=" + Fmt(a0)); }
+                        catch (Exception e) { Console.WriteLine("CalcAuth0 EX " + e.Message); }
+                        try { object a1 = null; int hr = s.B.ReadWriteCalcAuthCode(ref a1, 1); Console.WriteLine("CalcAuth(1) hr=0x" + hr.ToString("X8") + " a=" + Fmt(a1)); }
+                        catch (Exception e) { Console.WriteLine("CalcAuth1 EX " + e.Message); }
+                        try { uint sz = 0, st = 0; int ei = 0; s.B.GetSecurityPartitionSize(out sz, out st, out ei); Console.WriteLine("SecPart size=" + sz + " start=0x" + st.ToString("X8") + " err=" + ei); }
+                        catch (Exception e) { Console.WriteLine("SecPartSize EX " + e.Message); }
+                        try { object data; int hr = s.B.GetSecurityPartitionData(out data); string h = ""; if (data is byte[]) h = " hex=" + Hex((byte[])data); else if (data is Array) { var sb = new System.Text.StringBuilder(); foreach (object o in (Array)data) sb.Append(o is byte ? ((byte)o).ToString("x2") : o.ToString()); h = " hex=" + sb.ToString(); } Console.WriteLine("SecPartData hr=0x" + hr.ToString("X8") + " r=" + Fmt(data) + h); }
+                        catch (Exception e) { Console.WriteLine("SecPartData EX " + e.Message); }
+                    }
+                }
+                return 0;
+            } catch (Exception e) { Console.Error.WriteLine(mode + " error: " + e.GetType().Name + ": " + e.Message); return 3; }
+        }
         if (mode == "--vwrite") {
             byte[] data = File.ReadAllBytes(inPath);
             uint ver = 12;

@@ -372,6 +372,12 @@ int wmain(int argc, wchar_t** argv) {
         printf("  opendepot-cli --set-channel-name <in.cpg> <out.cpg> <zoneIndex> <chanIndex> <name>\n");
         printf("  opendepot-cli --set-channel-freq <in.cpg> <out.cpg> <zoneIndex> <chanIndex> <rxMHz> <txMHz>\n");
         printf("  opendepot-cli --set-identity <in.cpg> <out.cpg> <serial> <model>\n");
+        printf("  opendepot-cli --password <in.cpg>\n");
+        printf("  opendepot-cli --set-password <in.cpg> <out.cpg> <password>\n");
+        printf("  opendepot-cli --clear-password <in.cpg> <out.cpg>\n");
+        printf("  opendepot-cli --radio-password <port>\n");
+        printf("  opendepot-cli --unlock <port>\n");
+        printf("  opendepot-cli --security <port>\n");
         printf("  opendepot-cli --flashcode <in.cpg> [radio|platform]\n");
         printf("  opendepot-cli --set-flashcode <in.cpg> <out.cpg> <flashcode>\n");
         printf("  opendepot-cli --flashcode-options <radio|platform>\n");
@@ -706,6 +712,86 @@ int wmain(int argc, wchar_t** argv) {
         }
         printf("OK: safe to write (identity %s/%s, %zu records)\n", cp.header.serial.c_str(),
                cp.header.model.c_str(), cp.records.size());
+        return 0;
+    }
+    if (cmd == L"--password" && argc >= 3) {
+        Codeplug cp;
+        if (!LoadCodeplug(argv[2], cp)) { printf("LOAD FAILED: %s\n", cp.error.c_str()); return 2; }
+        CodeplugPassword pw;
+        if (!GetCodeplugPassword(cp, pw)) { printf("no passcode record (0x00510000)\n"); return 2; }
+        printf("passcode: enabled=%d password='%s'\n", pw.enabled ? 1 : 0, pw.password.c_str());
+        return 0;
+    }
+    if (cmd == L"--set-password" && argc >= 5) {
+        char pw[256] = {};
+        WideCharToMultiByte(CP_UTF8, 0, argv[4], -1, pw, sizeof(pw), nullptr, nullptr);
+        Codeplug cp;
+        if (!LoadCodeplug(argv[2], cp)) { printf("LOAD FAILED: %s\n", cp.error.c_str()); return 2; }
+        if (!SetCodeplugPassword(cp, true, pw)) { printf("no passcode record (0x00510000)\n"); return 2; }
+        std::string err;
+        if (!SaveCodeplug(argv[3], cp, err)) { printf("SAVE FAILED: %s\n", err.c_str()); return 2; }
+        printf("wrote %ls with passcode set\n", argv[3]);
+        return 0;
+    }
+    if (cmd == L"--clear-password" && argc >= 4) {
+        Codeplug cp;
+        if (!LoadCodeplug(argv[2], cp)) { printf("LOAD FAILED: %s\n", cp.error.c_str()); return 2; }
+        if (!SetCodeplugPassword(cp, false, "")) { printf("no passcode record (0x00510000)\n"); return 2; }
+        std::string err;
+        if (!SaveCodeplug(argv[3], cp, err)) { printf("SAVE FAILED: %s\n", err.c_str()); return 2; }
+        printf("wrote %ls with passcode cleared\n", argv[3]);
+        return 0;
+    }
+    if (cmd == L"--radio-password" && argc >= 3) {
+        // Native: full read, then parse the passcode record (no vendor DLL).
+        Codeplug tpl;
+        std::string berr;
+        std::string first = BuiltinFirstModel();
+        if (!first.empty()) BuiltinTemplate(first, tpl, berr);
+        std::vector<ReadRequest> reqs;
+        BuiltinReadRequests(reqs);
+        std::wstring reqsPath = TempPath(L"pw.reqs");
+        FILE* rf = _wfopen(reqsPath.c_str(), L"wb");
+        if (!rf) { printf("reqs write failed\n"); return 2; }
+        for (auto& r : reqs) {
+            uint8_t b[8] = {uint8_t(r.part >> 8), uint8_t(r.part), uint8_t(r.tag >> 8),
+                            uint8_t(r.tag),      uint8_t(r.inst >> 8), uint8_t(r.inst),
+                            uint8_t(r.len >> 8), uint8_t(r.len)};
+            fwrite(b, 1, 8, rf);
+        }
+        fclose(rf);
+        std::wstring rec = TempPath(L"pw.rec");
+        std::string err;
+        if (!RunNativeReader(std::wstring(argv[2]), rec, reqsPath, err)) {
+            printf("READ FAILED: %s\n", err.c_str());
+            DeleteFileW(reqsPath.c_str());
+            return 2;
+        }
+        std::vector<uint8_t> buf;
+        if (!ReadWholeFile(rec, buf)) { printf("read output missing\n"); return 2; }
+        Codeplug out;
+        if (!ApplyRecBuffer(buf, tpl, out, err)) { printf("READ PARSE FAILED: %s\n", err.c_str()); return 2; }
+        CodeplugPassword pw;
+        if (!GetCodeplugPassword(out, pw)) { printf("no passcode record returned\n"); return 2; }
+        printf("passcode: enabled=%d password='%s'\n", pw.enabled ? 1 : 0, pw.password.c_str());
+        DeleteFileW(reqsPath.c_str());
+        DeleteFileW(rec.c_str());
+        return 0;
+    }
+    if (cmd == L"--unlock" && argc >= 3) {
+        std::string err;
+        if (!RunHelper(L"--unlock " + std::wstring(argv[2]), err)) {
+            printf("UNLOCK FAILED: %s\n", err.c_str());
+            return 2;
+        }
+        return 0;
+    }
+    if (cmd == L"--security" && argc >= 3) {
+        std::string err;
+        if (!RunHelper(L"--security " + std::wstring(argv[2]), err)) {
+            printf("SECURITY FAILED: %s\n", err.c_str());
+            return 2;
+        }
         return 0;
     }
     if (cmd == L"--write-radio" && argc >= 4) {

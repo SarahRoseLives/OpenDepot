@@ -1398,4 +1398,42 @@ std::string DumpCodeplug(const Codeplug& cp) {
     return os.str();
 }
 
+bool GetCodeplugPassword(const Codeplug& cp, CodeplugPassword& out) {
+    out = {};
+    const Record* r = nullptr;
+    for (const auto& x : cp.records)
+        if (x.id == 0x00510000u) { r = &x; break; }
+    if (!r || r->raw.size() < 8) return false;
+    out.present = true;
+    const size_t plen = r->raw.size() - 8;
+    if (plen == 0) return true;
+    out.enabled = r->raw[6] != 0;
+    for (size_t i = 1; i < plen; ++i) {
+        const uint8_t c = r->raw[6 + i];
+        if (!c) break;
+        out.password.push_back(static_cast<char>(c));
+    }
+    return true;
+}
+
+bool SetCodeplugPassword(Codeplug& cp, bool enabled, const std::string& password) {
+    Record* r = nullptr;
+    for (auto& x : cp.records)
+        if (x.id == 0x00510000u) { r = &x; break; }
+    if (!r || r->raw.size() < 11) return false;
+    const size_t plen = r->raw.size() - 8;
+    for (size_t i = 0; i < plen; ++i) r->raw[6 + i] = 0;
+    r->raw[6] = enabled ? 1 : 0;
+    // The vendor reader zeroes the last two payload bytes; keep them reserved.
+    const size_t maxLen = plen >= 3 ? plen - 3 : 0;
+    for (size_t i = 0; i < password.size() && i < maxLen; ++i)
+        r->raw[7 + i] = static_cast<uint8_t>(password[i]);
+    const uint16_t crc = Crc16Ccitt(r->raw.data() + 6, plen);
+    r->raw[6 + plen] = static_cast<uint8_t>(crc >> 8);
+    r->raw[6 + plen + 1] = static_cast<uint8_t>(crc & 0xFF);
+    r->checksum = crc;
+    r->verified = true;
+    return true;
+}
+
 }  // namespace opendepot
