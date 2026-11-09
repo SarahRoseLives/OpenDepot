@@ -290,16 +290,35 @@ static void OpenCreateDialog() {
     if (g_app.loaded) {
         snprintf(g_app.createSerial, sizeof(g_app.createSerial), "%s", g_app.cp.header.serial.c_str());
         snprintf(g_app.createModel, sizeof(g_app.createModel), "%s", g_app.cp.header.model.c_str());
-        // Match Band/Radio/Type to the model so the dialog reflects the radio.
-        for (const auto& m : ModelCatalog()) {
-            if (g_app.cp.header.model != m.model) continue;
-            for (int i = 0; i < (int)BandOptions().size(); ++i)
-                if (BandOptions()[i] == m.band) g_app.createBand = i;
+        // Derive Radio from the model family and Band from the actual frequencies.
+        auto setRadio = [&](const char* name) {
             for (int i = 0; i < (int)RadioOptions().size(); ++i)
-                if (RadioOptions()[i] == m.radio) g_app.createRadio = i;
-            for (int i = 0; i < (int)TypeOptions().size(); ++i)
-                if (TypeOptions()[i] == m.type) g_app.createType = i;
-            break;
+                if (RadioOptions()[i] == name) { g_app.createRadio = i; break; }
+        };
+        const std::string& md = g_app.cp.header.model;
+        if (md.rfind("H46", 0) == 0) setRadio("XTS2500");
+        else if (md.rfind("H66", 0) == 0) setRadio("XTS1500");
+        else if (md.rfind("H67", 0) == 0) setRadio("MT1500");
+        else if (md.rfind("H10", 0) == 0) setRadio("SSE5000");
+        else if (md.rfind("H79", 0) == 0) setRadio("PR1500");
+        else if (md.rfind("H18KCN", 0) == 0) setRadio("XTS4000");
+        else if (md.rfind("H18", 0) == 0) setRadio("XTS5000");
+        std::vector<ZoneView> zones;
+        if (ParseZones(g_app.cp, zones)) {
+            for (const auto& z : zones) {
+                if (z.channels.empty()) continue;
+                const double rx = z.channels[0].rxWord * 5.0 / 1e6;
+                const char* band = nullptr;
+                if (rx >= 136 && rx <= 174) band = "VHF";
+                else if (rx >= 380 && rx <= 520) band = "UHF";
+                else if (rx >= 764 && rx <= 870) band = "800 MHz";
+                else if (rx >= 896 && rx <= 941) band = "900 MHz";
+                if (band) {
+                    for (int i = 0; i < (int)BandOptions().size(); ++i)
+                        if (BandOptions()[i] == band) { g_app.createBand = i; break; }
+                    break;
+                }
+            }
         }
         std::string fc = GetFlashcode(g_app.cp);
         snprintf(g_app.createFlash, sizeof(g_app.createFlash), "%s", fc.c_str());
