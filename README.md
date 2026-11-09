@@ -262,7 +262,16 @@ Read-only analysis tools (CLI):
   (added/removed/changed) and zone/channel differences.
 
 GUI: **Tools → Service Report… / Codeplug Doctor… / Repair checksums/identity /
-Diff with file…**.
+Diff with file…**. These work on the open codeplug or, when none is loaded, on a
+`.cpg` you pick.
+
+## Radio recovery (FAIL 01/92)
+
+If a radio's identity block is blank it cannot be read normally, so the tools
+are not reachable by reading it. Recovery uses a **verified backup** for that
+exact model: **Radio → Recover from backup (write)…**. It validates the backup,
+skips the pre-write read (which would fail on a dead radio), writes the full
+record set, and verifies the identity afterwards. Always keep the backup.
 
 ## Radio transport (recovered)
 

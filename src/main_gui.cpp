@@ -619,8 +619,9 @@ struct RadioJob {
 };
 static std::unique_ptr<RadioJob> g_radioJob;
 static std::thread g_radioThread;
+static bool g_skipBackupWrite = false;
 
-static void StartRadioJob(bool write) {
+static void StartRadioJob(bool write, bool skipBackup = false) {
     if (g_app.radioBusy) return;
     if (write && !g_app.loaded) return;
     std::string err;
@@ -649,9 +650,9 @@ static void StartRadioJob(bool write) {
     RadioJob* raw = job.get();
     g_radioJob = std::move(job);
     const std::string port(g_app.radioPort);
-    g_radioThread = std::thread([raw, write, useTpl, port, tpl, out, backup]() {
+    g_radioThread = std::thread([raw, write, useTpl, port, tpl, out, backup, skipBackup]() {
         std::string e;
-        if (write) {
+        if (write && !skipBackup) {
             std::wstring bargs = L"--read-radio " + std::wstring(port.begin(), port.end()) +
                                  L" \"" + tpl + L"\" \"" + backup + L"\"";
             if (!RunCli(bargs, e)) {
@@ -875,6 +876,28 @@ static void DrawTextModal() {
     }
 }
 
+static void OpenRecoveryDialog() {
+    std::wstring p;
+    if (!OpenDialog(p)) return;
+    Codeplug cp;
+    if (!LoadCodeplug(p, cp)) {
+        g_app.status = "Recovery: cannot load " + cp.error;
+        return;
+    }
+    std::string verr;
+    if (!ValidateRadioCodeplug(cp, verr)) {
+        g_app.status = "Recovery refused: " + verr;
+        return;
+    }
+    g_app.cp = std::move(cp);
+    g_app.loaded = true;
+    g_app.pathUtf8[0] = 0;
+    g_app.selected = -1;
+    SyncIdentityBuffers();
+    g_skipBackupWrite = true;
+    g_app.showWriteConfirm = true;
+}
+
 static void DrawRadioConfirm() {
     if (g_app.showWriteConfirm) {
         ImGui::OpenPopup("Write to Radio");
@@ -883,7 +906,10 @@ static void DrawRadioConfirm() {
     if (!ImGui::BeginPopupModal("Write to Radio", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) return;
     ImGui::TextUnformatted("This overwrites the radio's codeplug with the open file.");
     ImGui::Text("Identity: %s / %s", g_app.cp.header.serial.c_str(), g_app.cp.header.model.c_str());
-    ImGui::TextUnformatted("A fresh read of the radio is saved to build\\radio-backups\\ before writing.");
+    if (g_skipBackupWrite)
+        ImGui::TextUnformatted("Recovery mode: pre-write backup is skipped (radio may be unreadable).");
+    else
+        ImGui::TextUnformatted("A fresh read of the radio is saved to build\\radio-backups\\ before writing.");
     ImGui::Separator();
     std::string verr;
     if (!ValidateRadioCodeplug(g_app.cp, verr)) {
@@ -891,7 +917,8 @@ static void DrawRadioConfirm() {
         if (ImGui::Button("Close")) ImGui::CloseCurrentPopup();
     } else {
         if (ImGui::Button("Write")) {
-            StartRadioJob(true);
+            StartRadioJob(true, g_skipBackupWrite);
+            g_skipBackupWrite = false;
             ImGui::CloseCurrentPopup();
         }
         ImGui::SameLine();
@@ -932,32 +959,76 @@ static void DrawUI() {
                 g_app.status = bad ? "Verification found bad records." : "All records verified.";
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Service Report...", nullptr, false, g_app.loaded)) {
-                ShowText("Service Report", ServiceReportText(g_app.cp, ""));
+            if (ImGui::MenuItem("Service Report...")) {
+                Codeplug cp;
+                bool have = false;
+                if (g_app.loaded) { cp = g_app.cp; have = true; }
+                else { std::wstring p; if (OpenDialog(p) && LoadCodeplug(p, cp)) have = true; }
+                if (have) ShowText("Service Report", ServiceReportText(cp, ""));
+                else if (!g_app.loaded) g_app.status = "Service report: no codeplug loaded.";
             }
-            if (ImGui::MenuItem("Codeplug Doctor...", nullptr, false, g_app.loaded)) {
-                DoctorResult res;
-                DoctorCodeplug(g_app.cp, res, false);
-                std::string body = res.issues.empty() ? "Healthy.\n" : "";
-                for (const auto& s : res.issues) body += "issue: " + s + "\n";
-                ShowText("Codeplug Doctor", body);
+            if (ImGui::MenuItem("Codeplug Doctor...")) {
+                Codeplug cp;
+                bool have = false;
+                if (g_app.loaded) { cp = g_app.cp; have = true; }
+                else { std::wstring p; if (OpenDialog(p) && LoadCodeplug(p, cp)) have = true; }
+                if (have) {
+                    DoctorResult res;
+                    DoctorCodeplug(cp, res, false);
+                    std::string body = res.issues.empty() ? "Healthy.\n" : "";
+                    for (const auto& s : res.issues) body += "issue: " + s + "\n";
+                    ShowText("Codeplug Doctor", body);
+                }
             }
-            if (ImGui::MenuItem("Repair checksums/identity", nullptr, false, g_app.loaded)) {
-                DoctorResult res;
-                DoctorCodeplug(g_app.cp, res, true);
-                std::string body;
-                for (const auto& s : res.fixes) body += "fix: " + s + "\n";
-                if (body.empty()) body = "Nothing to repair.\n";
-                ShowText("Repair", body);
+            if (ImGui::MenuItem("Repair checksums/identity")) {
+                if (g_app.loaded) {
+                    DoctorResult res;
+                    DoctorCodeplug(g_app.cp, res, true);
+                    std::string body;
+                    for (const auto& s : res.fixes) body += "fix: " + s + "\n";
+                    if (body.empty()) body = "Nothing to repair.\n";
+                    ShowText("Repair", body);
+                } else {
+                    std::wstring in;
+                    if (OpenDialog(in)) {
+                        Codeplug cp;
+                        if (!LoadCodeplug(in, cp)) {
+                            ShowText("Repair", "Could not load: " + cp.error);
+                        } else {
+                            DoctorResult res;
+                            DoctorCodeplug(cp, res, true);
+                            std::wstring outp;
+                            if (SaveDialog(outp)) {
+                                std::string e, body;
+                                for (const auto& s : res.fixes) body += "fix: " + s + "\n";
+                                if (SaveCodeplug(outp, cp, e)) body += "saved repaired codeplug.\n";
+                                else body += "save failed: " + e + "\n";
+                                ShowText("Repair", body);
+                            }
+                        }
+                    }
+                }
             }
-            if (ImGui::MenuItem("Diff with file...", nullptr, false, g_app.loaded)) {
-                std::wstring p;
-                if (OpenDialog(p)) {
-                    Codeplug other;
-                    if (LoadCodeplug(p, other))
-                        ShowText("Codeplug Diff", DiffCodeplugsText(g_app.cp, other));
-                    else
-                        ShowText("Codeplug Diff", "Could not load: " + other.error);
+            if (ImGui::MenuItem("Diff with file...")) {
+                std::wstring p1;
+                if (OpenDialog(p1)) {
+                    if (g_app.loaded) {
+                        Codeplug b;
+                        if (LoadCodeplug(p1, b)) ShowText("Codeplug Diff", DiffCodeplugsText(g_app.cp, b));
+                        else ShowText("Codeplug Diff", "Could not load: " + b.error);
+                    } else {
+                        Codeplug a;
+                        if (!LoadCodeplug(p1, a)) {
+                            ShowText("Codeplug Diff", "Could not load: " + a.error);
+                        } else {
+                            std::wstring p2;
+                            if (OpenDialog(p2)) {
+                                Codeplug b;
+                                if (LoadCodeplug(p2, b)) ShowText("Codeplug Diff", DiffCodeplugsText(a, b));
+                                else ShowText("Codeplug Diff", "Could not load: " + b.error);
+                            }
+                        }
+                    }
                 }
             }
             ImGui::EndMenu();
@@ -983,6 +1054,8 @@ static void DrawUI() {
             const bool canWrite = g_app.loaded && !g_app.radioBusy;
             if (ImGui::MenuItem("Read from Radio...", nullptr, false, canRead)) StartRadioJob(false);
             if (ImGui::MenuItem("Write to Radio...", nullptr, false, canWrite)) g_app.showWriteConfirm = true;
+            if (ImGui::MenuItem("Recover from backup (write)...", nullptr, false, canRead))
+                OpenRecoveryDialog();
             ImGui::Separator();
             if (ImGui::MenuItem("Read Passcode from Radio", nullptr, false, canRead)) StartPasscodeRead();
             if (ImGui::MenuItem("Set Passcode...", nullptr, false, g_app.loaded && !g_app.radioBusy))
