@@ -303,6 +303,7 @@ static void OpenCreateDialog() {
         else if (md.rfind("H79", 0) == 0) setRadio("PR1500");
         else if (md.rfind("H18KCN", 0) == 0) setRadio("XTS4000");
         else if (md.rfind("H18", 0) == 0) setRadio("XTS5000");
+        else if (md.rfind("M20", 0) == 0) setRadio("XTL5000");
         std::vector<ZoneView> zones;
         if (ParseZones(g_app.cp, zones)) {
             for (const auto& z : zones) {

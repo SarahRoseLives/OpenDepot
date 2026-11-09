@@ -861,7 +861,7 @@ const std::vector<std::string>& BandOptions() {
 }
 const std::vector<std::string>& RadioOptions() {
     static const std::vector<std::string> v = {"XTS2500", "XTS5000", "SSE5000", "XTS1500",
-                                               "MT1500",  "PR1500",  "XTS4000", "XTS2000/ATS3000"};
+                                               "MT1500",  "PR1500",  "XTS4000", "XTL5000", "XTS2000/ATS3000"};
     return v;
 }
 const std::vector<std::string>& TypeOptions() {
