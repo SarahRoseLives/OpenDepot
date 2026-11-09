@@ -1,4 +1,8 @@
 #include "adk.h"
+
+#include <algorithm>
+#include <sstream>
+#include <unordered_map>
 #include "model_db.h"
 
 #include <windows.h>
@@ -1434,6 +1438,356 @@ bool SetCodeplugPassword(Codeplug& cp, bool enabled, const std::string& password
     r->checksum = crc;
     r->verified = true;
     return true;
+}
+
+static std::string JsonEsc(const std::string& s) {
+    std::string o;
+    for (char c : s) {
+        switch (c) {
+            case '"': o += "\\\""; break;
+            case '\\': o += "\\\\"; break;
+            case '\n': o += "\\n"; break;
+            case '\r': o += "\\r"; break;
+            case '\t': o += "\\t"; break;
+            default:
+                if (static_cast<unsigned char>(c) < 0x20) {
+                    char b[8];
+                    snprintf(b, sizeof(b), "\\u%04x", static_cast<unsigned char>(c));
+                    o += b;
+                } else {
+                    o += c;
+                }
+        }
+    }
+    return o;
+}
+
+std::string ServiceReportText(const Codeplug& cp, const std::string& banner) {
+    std::ostringstream os;
+    os << "OpenDepot service report\n";
+    os << "Identity\n";
+    os << "  model:  " << cp.header.model << "\n";
+    os << "  serial: " << cp.header.serial << "\n";
+    if (!banner.empty()) {
+        os << "Radio (AT&V)\n";
+        std::istringstream is(banner);
+        std::string ln;
+        while (std::getline(is, ln)) {
+            if (!ln.empty() && ln.back() == '\r') ln.pop_back();
+            if (!ln.empty()) os << "  " << ln << "\n";
+        }
+    }
+    const std::string fc = GetFlashcode(cp);
+    os << "FLASHcode\n  code: " << (fc.empty() ? "(none)" : fc) << "\n";
+    auto feats = EnabledFeatures(fc);
+    if (!feats.empty()) {
+        os << "  features:\n";
+        for (const auto& f : feats) os << "    - " << f << "\n";
+    }
+    CodeplugPassword pw;
+    if (GetCodeplugPassword(cp, pw)) {
+        os << "Passcode\n  enabled: " << (pw.enabled ? 1 : 0) << "\n  passcode: '" << pw.password
+           << "'\n";
+    } else {
+        os << "Passcode\n  (no passcode record)\n";
+    }
+    std::vector<ZoneView> zones;
+    if (ParseZones(cp, zones) && !zones.empty()) {
+        os << "Zones\n";
+        for (size_t z = 0; z < zones.size(); ++z) {
+            os << "  Zone " << (z + 1) << ": " << zones[z].name << " (" << zones[z].channels.size()
+               << " channels)\n";
+            for (size_t c = 0; c < zones[z].channels.size(); ++c) {
+                const auto& ch = zones[z].channels[c];
+                char b[192];
+                snprintf(b, sizeof(b), "    %2zu. %-16s rx=%.5f tx=%.5f\n", c + 1, ch.name.c_str(),
+                         WordToMHz(ch.rxWord), WordToMHz(ch.txWord));
+                os << b;
+            }
+        }
+    }
+    size_t good = 0;
+    for (const auto& r : cp.records)
+        if (r.verified) ++good;
+    os << "Records\n  " << cp.records.size() << " records, " << good << " CRC-ok\n";
+    return os.str();
+}
+
+std::string ServiceReportJson(const Codeplug& cp, const std::string& banner) {
+    std::ostringstream os;
+    const std::string fc = GetFlashcode(cp);
+    CodeplugPassword pw;
+    const bool havePw = GetCodeplugPassword(cp, pw);
+    os << "{\n  \"model\": \"" << JsonEsc(cp.header.model) << "\",\n";
+    os << "  \"serial\": \"" << JsonEsc(cp.header.serial) << "\",\n";
+    os << "  \"version\": \"" << JsonEsc(cp.header.version) << "\",\n";
+    os << "  \"flashcode\": \"" << JsonEsc(fc) << "\",\n";
+    os << "  \"features\": [";
+    auto feats = EnabledFeatures(fc);
+    for (size_t i = 0; i < feats.size(); ++i)
+        os << (i ? ", " : "") << "\"" << JsonEsc(feats[i]) << "\"";
+    os << "],\n";
+    os << "  \"passcode\": {\"present\": " << (havePw ? "true" : "false")
+       << ", \"enabled\": " << (havePw && pw.enabled ? "true" : "false") << ", \"value\": \""
+       << (havePw ? JsonEsc(pw.password) : "") << "\"},\n";
+    os << "  \"banner\": \"" << JsonEsc(banner) << "\",\n";
+    os << "  \"zones\": [";
+    std::vector<ZoneView> zones;
+    if (ParseZones(cp, zones)) {
+        for (size_t z = 0; z < zones.size(); ++z) {
+            if (z) os << ",";
+            os << "\n    {\"name\": \"" << JsonEsc(zones[z].name) << "\", \"channels\": [";
+            for (size_t c = 0; c < zones[z].channels.size(); ++c) {
+                const auto& ch = zones[z].channels[c];
+                char b[256];
+                if (c) os << ",";
+                snprintf(b, sizeof(b),
+                         "\n      {\"name\": \"%s\", \"rx\": %.6f, \"tx\": %.6f}",
+                         JsonEsc(ch.name).c_str(), WordToMHz(ch.rxWord), WordToMHz(ch.txWord));
+                os << b;
+            }
+            os << "\n    ]}";
+        }
+        os << "\n  ";
+    }
+    os << "],\n";
+    size_t good = 0;
+    for (const auto& r : cp.records)
+        if (r.verified) ++good;
+    os << "  \"records\": " << cp.records.size() << ",\n  \"records_ok\": " << good << "\n}\n";
+    return os.str();
+}
+
+bool DoctorCodeplug(Codeplug& cp, DoctorResult& res, bool repair) {
+    res = {};
+    if (cp.records.empty()) {
+        res.issues.push_back("no records loaded");
+        return false;
+    }
+    // header checksum (0x44 = 0x5A - sum(0..0x40))
+    {
+        uint32_t sum = 0;
+        for (size_t i = 0; i <= 0x40 && i < cp.header.raw.size(); ++i) sum += cp.header.raw[i];
+        const uint8_t want = static_cast<uint8_t>(0x5A - sum);
+        if (cp.header.raw[0x44] != want) {
+            char b[96];
+            snprintf(b, sizeof(b), "header checksum 0x%02X != 0x%02X", cp.header.raw[0x44], want);
+            res.issues.push_back(b);
+            if (repair) {
+                cp.header.raw[0x44] = want;
+                res.fixes.push_back("fixed header checksum");
+            }
+        }
+    }
+    // directory checksum (sum(entries) + 0xAAAB, big-endian trailer)
+    if (cp.mapPlain.size() >= 2) {
+        const size_t n = (cp.mapPlain.size() - 2) / 10;
+        uint32_t sum = 0;
+        for (size_t i = 0; i < n * 10; ++i) sum += cp.mapPlain[i];
+        const uint16_t want = static_cast<uint16_t>(sum + 0xAAAB);
+        const uint16_t have = static_cast<uint16_t>((cp.mapPlain[cp.mapPlain.size() - 2] << 8) |
+                                                    cp.mapPlain[cp.mapPlain.size() - 1]);
+        if (have != want) {
+            char b[96];
+            snprintf(b, sizeof(b), "directory checksum 0x%04X != 0x%04X", have, want);
+            res.issues.push_back(b);
+            if (repair) {
+                cp.mapPlain[cp.mapPlain.size() - 2] = static_cast<uint8_t>(want >> 8);
+                cp.mapPlain[cp.mapPlain.size() - 1] = static_cast<uint8_t>(want);
+                res.fixes.push_back("fixed directory checksum");
+            }
+        }
+    }
+    size_t badCrc = 0, badLen = 0;
+    for (auto& r : cp.records) {
+        if (r.raw.size() < 8) {
+            ++badLen;
+            continue;
+        }
+        const uint16_t len = static_cast<uint16_t>((r.raw[4] << 8) | r.raw[5]);
+        if (len != r.raw.size() - 6) {
+            ++badLen;
+            if (repair) {
+                const uint16_t nl = static_cast<uint16_t>(r.raw.size() - 6);
+                r.raw[4] = static_cast<uint8_t>(nl >> 8);
+                r.raw[5] = static_cast<uint8_t>(nl);
+            }
+        }
+        const uint16_t crc = Crc16Ccitt(r.raw.data() + 6, r.raw.size() - 8);
+        const uint16_t have = static_cast<uint16_t>((r.raw[r.raw.size() - 2] << 8) |
+                                                    r.raw[r.raw.size() - 1]);
+        if (crc != have) {
+            ++badCrc;
+            if (repair) {
+                r.raw[r.raw.size() - 2] = static_cast<uint8_t>(crc >> 8);
+                r.raw[r.raw.size() - 1] = static_cast<uint8_t>(crc);
+                r.checksum = crc;
+                r.verified = true;
+            }
+        } else {
+            r.verified = true;
+        }
+    }
+    if (badCrc) {
+        char b[64];
+        snprintf(b, sizeof(b), "%zu record CRC mismatch(es)", badCrc);
+        res.issues.push_back(b);
+        if (repair) res.fixes.push_back("recomputed record CRCs");
+    }
+    if (badLen) {
+        char b[64];
+        snprintf(b, sizeof(b), "%zu record length mismatch(es)", badLen);
+        res.issues.push_back(b);
+        if (repair) res.fixes.push_back("fixed record lengths");
+    }
+    bool hasId = false;
+    for (const auto& r : cp.records)
+        if (r.id == 0x10040000u) hasId = true;
+    if (!hasId) res.issues.push_back("missing identity record 0x10040000");
+    std::string s, m;
+    if (ReadIdentityFromCodeplug(cp, s, m)) {
+        if (s != cp.header.serial || m != cp.header.model) {
+            char b[192];
+            snprintf(b, sizeof(b), "header identity %s/%s != codeplug %s/%s",
+                     cp.header.serial.c_str(), cp.header.model.c_str(), s.c_str(), m.c_str());
+            res.issues.push_back(b);
+            if (repair && UpdateIdentity(cp, s, m))
+                res.fixes.push_back("re-synced identity from 0x10040000");
+        }
+    } else if (hasId) {
+        res.issues.push_back("identity record unreadable");
+    }
+    if (cp.header.serial.empty() || cp.header.model.empty())
+        res.issues.push_back("header serial/model empty");
+    return hasId;
+}
+
+std::string DiffCodeplugsText(const Codeplug& a, const Codeplug& b) {
+    std::ostringstream os;
+    os << "Codeplug diff\n";
+    auto line = [&](const char* k, const std::string& x, const std::string& y) {
+        if (x != y)
+            os << k << ": " << (x.empty() ? "(none)" : x) << "  ->  "
+               << (y.empty() ? "(none)" : y) << "\n";
+    };
+    line("model", a.header.model, b.header.model);
+    line("serial", a.header.serial, b.header.serial);
+    line("version", a.header.version, b.header.version);
+    line("FLASHcode", GetFlashcode(a), GetFlashcode(b));
+    std::unordered_map<uint32_t, const Record*> ma, mb;
+    for (const auto& r : a.records) ma.emplace(r.id, &r);
+    for (const auto& r : b.records) mb.emplace(r.id, &r);
+    std::vector<uint32_t> added, removed, changed;
+    for (const auto& kv : mb)
+        if (!ma.count(kv.first)) added.push_back(kv.first);
+    for (const auto& kv : ma)
+        if (!mb.count(kv.first)) removed.push_back(kv.first);
+    for (const auto& kv : ma) {
+        auto it = mb.find(kv.first);
+        if (it != mb.end() && kv.second->raw != it->second->raw) changed.push_back(kv.first);
+    }
+    char b1[160];
+    snprintf(b1, sizeof(b1), "records: A=%zu B=%zu  added=%zu removed=%zu changed=%zu\n",
+             a.records.size(), b.records.size(), added.size(), removed.size(), changed.size());
+    os << b1;
+    for (uint32_t id : added) {
+        const Record* r = mb[id];
+        snprintf(b1, sizeof(b1), "  + 0x%08X type=0x%04X size=%zu\n", id, r->type, r->raw.size());
+        os << b1;
+    }
+    for (uint32_t id : removed) {
+        const Record* r = ma[id];
+        snprintf(b1, sizeof(b1), "  - 0x%08X type=0x%04X size=%zu\n", id, r->type, r->raw.size());
+        os << b1;
+    }
+    for (uint32_t id : changed) {
+        const Record* x = ma[id];
+        const Record* y = mb[id];
+        snprintf(b1, sizeof(b1), "  ~ 0x%08X type=0x%04X size=%zu->%zu\n", id, y->type,
+                 x->raw.size(), y->raw.size());
+        os << b1;
+    }
+    std::vector<ZoneView> za, zb;
+    const bool oa = ParseZones(a, za), ob = ParseZones(b, zb);
+    if (oa || ob) {
+        snprintf(b1, sizeof(b1), "zones: A=%zu B=%zu\n", za.size(), zb.size());
+        os << b1;
+        const size_t n = std::max(za.size(), zb.size());
+        for (size_t i = 0; i < n; ++i) {
+            const bool ha = i < za.size(), hb = i < zb.size();
+            if (!ha) {
+                os << "  + zone " << (i + 1) << ": " << zb[i].name << "\n";
+                continue;
+            }
+            if (!hb) {
+                os << "  - zone " << (i + 1) << ": " << za[i].name << "\n";
+                continue;
+            }
+            if (za[i].name != zb[i].name)
+                os << "  ~ zone " << (i + 1) << " name " << za[i].name << " -> " << zb[i].name
+                   << "\n";
+            const size_t mc = std::max(za[i].channels.size(), zb[i].channels.size());
+            for (size_t c = 0; c < mc; ++c) {
+                const bool ca = c < za[i].channels.size(), cb = c < zb[i].channels.size();
+                if (!ca) {
+                    os << "    + ch " << (c + 1) << ": " << zb[i].channels[c].name << "\n";
+                } else if (!cb) {
+                    os << "    - ch " << (c + 1) << ": " << za[i].channels[c].name << "\n";
+                } else {
+                    const auto& x = za[i].channels[c];
+                    const auto& y = zb[i].channels[c];
+                    if (x.name != y.name)
+                        os << "    ~ ch " << (c + 1) << " name " << x.name << " -> " << y.name
+                           << "\n";
+                    if (x.rxWord != y.rxWord || x.txWord != y.txWord) {
+                        char bb[192];
+                        snprintf(bb, sizeof(bb), "    ~ ch %zu freq %.5f/%.5f -> %.5f/%.5f\n", c + 1,
+                                 WordToMHz(x.rxWord), WordToMHz(x.txWord), WordToMHz(y.rxWord),
+                                 WordToMHz(y.txWord));
+                        os << bb;
+                    }
+                }
+            }
+        }
+    }
+    return os.str();
+}
+
+std::string DiffCodeplugsJson(const Codeplug& a, const Codeplug& b) {
+    std::ostringstream os;
+    std::unordered_map<uint32_t, const Record*> ma, mb;
+    for (const auto& r : a.records) ma.emplace(r.id, &r);
+    for (const auto& r : b.records) mb.emplace(r.id, &r);
+    std::vector<uint32_t> added, removed, changed;
+    for (const auto& kv : mb)
+        if (!ma.count(kv.first)) added.push_back(kv.first);
+    for (const auto& kv : ma)
+        if (!mb.count(kv.first)) removed.push_back(kv.first);
+    for (const auto& kv : ma) {
+        auto it = mb.find(kv.first);
+        if (it != mb.end() && kv.second->raw != it->second->raw) changed.push_back(kv.first);
+    }
+    os << "{\n  \"a\": {\"model\": \"" << JsonEsc(a.header.model) << "\", \"serial\": \""
+       << JsonEsc(a.header.serial) << "\"},\n";
+    os << "  \"b\": {\"model\": \"" << JsonEsc(b.header.model) << "\", \"serial\": \""
+       << JsonEsc(b.header.serial) << "\"},\n";
+    os << "  \"flashcode\": [\"" << JsonEsc(GetFlashcode(a)) << "\", \"" << JsonEsc(GetFlashcode(b))
+       << "\"],\n";
+    auto ids = [&](const std::vector<uint32_t>& v) {
+        std::ostringstream o;
+        o << "[";
+        for (size_t i = 0; i < v.size(); ++i) {
+            char bb[16];
+            snprintf(bb, sizeof(bb), "0x%08X", v[i]);
+            o << (i ? ", " : "") << "\"" << bb << "\"";
+        }
+        o << "]";
+        return o.str();
+    };
+    os << "  \"records\": {\"a\": " << a.records.size() << ", \"b\": " << b.records.size()
+       << ", \"added\": " << ids(added) << ", \"removed\": " << ids(removed)
+       << ", \"changed\": " << ids(changed) << "}\n}\n";
+    return os.str();
 }
 
 }  // namespace opendepot

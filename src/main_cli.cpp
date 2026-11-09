@@ -277,7 +277,7 @@ static bool RunRawWriter(const std::wstring& port, const std::wstring& cpg, std:
 // Native read over OpenDepot's own PPP/TCP transport (no vendor DLL).
 static bool RunNativeReader(const std::wstring& port, const std::wstring& rec,
                             const std::wstring& reqs, std::string& err,
-                            DWORD timeoutMs = 300000) {
+                            DWORD timeoutMs = 300000, const std::wstring& meta = L"") {
     std::wstring script = RawScriptPath();
     if (script.empty()) {
         err = "radio_tcp.py not found";
@@ -285,6 +285,7 @@ static bool RunNativeReader(const std::wstring& port, const std::wstring& rec,
     }
     std::wstring cmd = L"python \"" + script + L"\" " + port + L" --native-read \"" + rec +
                        L"\" --reqs \"" + reqs + L"\"";
+    if (!meta.empty()) cmd += L" --meta \"" + meta + L"\"";
     std::vector<wchar_t> buf(cmd.begin(), cmd.end());
     buf.push_back(0);
     STARTUPINFOW si{};
@@ -324,6 +325,97 @@ static std::wstring TempPath(const wchar_t* name) {
     return base + L"\\" + name;
 }
 
+
+static std::string QueryBanner(const std::wstring& port) {
+    std::wstring dev = L"\\\\.\\" + port;
+    HANDLE h = CreateFileW(dev.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0,
+                           nullptr);
+    if (h == INVALID_HANDLE_VALUE) return {};
+    DCB dcb{};
+    dcb.DCBlength = sizeof(dcb);
+    GetCommState(h, &dcb);
+    dcb.BaudRate = 9600;
+    dcb.ByteSize = 8;
+    dcb.Parity = NOPARITY;
+    dcb.StopBits = ONESTOPBIT;
+    dcb.fBinary = TRUE;
+    dcb.fParity = FALSE;
+    dcb.fOutxCtsFlow = TRUE;
+    dcb.fRtsControl = RTS_CONTROL_HANDSHAKE;
+    dcb.fDtrControl = DTR_CONTROL_ENABLE;
+    dcb.fOutX = FALSE;
+    dcb.fInX = FALSE;
+    dcb.fDsrSensitivity = FALSE;
+    SetCommState(h, &dcb);
+    COMMTIMEOUTS to{};
+    to.ReadIntervalTimeout = 50;
+    to.ReadTotalTimeoutConstant = 1500;
+    to.ReadTotalTimeoutMultiplier = 10;
+    to.WriteTotalTimeoutConstant = 1000;
+    SetCommTimeouts(h, &to);
+    PurgeComm(h, PURGE_RXCLEAR | PURGE_TXCLEAR);
+    DWORD wrote = 0;
+    WriteFile(h, "AT&V\r", 5, &wrote, nullptr);
+    std::string out;
+    char buf[512];
+    for (int i = 0; i < 30; ++i) {
+        DWORD n = 0;
+        if (!ReadFile(h, buf, sizeof(buf), &n, nullptr) || n == 0) break;
+        out.append(buf, n);
+        if (out.find("OK") != std::string::npos) break;
+    }
+    CloseHandle(h);
+    return out;
+}
+
+static bool ReadRadioToCodeplug(const std::wstring& port, Codeplug& out, std::string& err,
+                                std::string* metaOut = nullptr) {
+    Codeplug tpl;
+    std::string berr;
+    std::string first = BuiltinFirstModel();
+    if (!first.empty()) BuiltinTemplate(first, tpl, berr);
+    std::vector<ReadRequest> reqs;
+    BuiltinReadRequests(reqs);
+    std::wstring reqsPath = TempPath(L"rr.reqs");
+    FILE* rf = _wfopen(reqsPath.c_str(), L"wb");
+    if (!rf) {
+        err = "reqs write failed";
+        return false;
+    }
+    for (auto& r : reqs) {
+        uint8_t b[8] = {uint8_t(r.part >> 8), uint8_t(r.part), uint8_t(r.tag >> 8),
+                        uint8_t(r.tag),      uint8_t(r.inst >> 8), uint8_t(r.inst),
+                        uint8_t(r.len >> 8), uint8_t(r.len)};
+        fwrite(b, 1, 8, rf);
+    }
+    fclose(rf);
+    std::wstring rec = TempPath(L"rr.rec");
+    std::wstring metaPath = TempPath(L"rr.meta");
+    const bool ok = RunNativeReader(port, rec, reqsPath, err, 300000,
+                                    metaOut ? metaPath : L"");
+    DeleteFileW(reqsPath.c_str());
+    if (metaOut) {
+        std::vector<uint8_t> mb;
+        metaOut->clear();
+        if (ReadWholeFile(metaPath, mb)) metaOut->assign(mb.begin(), mb.end());
+    }
+    DeleteFileW(metaPath.c_str());
+    if (!ok) {
+        DeleteFileW(rec.c_str());
+        return false;
+    }
+    std::vector<uint8_t> buf;
+    if (!ReadWholeFile(rec, buf)) {
+        DeleteFileW(rec.c_str());
+        err = "read output missing";
+        return false;
+    }
+    DeleteFileW(rec.c_str());
+    if (!ApplyRecBuffer(buf, tpl, out, err)) return false;
+    std::string s, m;
+    if (ReadIdentityFromCodeplug(out, s, m)) UpdateIdentity(out, s, m);
+    return true;
+}
 
 static bool WriteIdentityTagList(const std::wstring& path) {
     const uint16_t tags[3] = {0x1004, 0x1005, 0x1006};
@@ -404,6 +496,10 @@ int wmain(int argc, wchar_t** argv) {
         printf("  opendepot-cli --clear-password <in.cpg> <out.cpg>\n");
         printf("  opendepot-cli --radio-password <port>\n");
         printf("  opendepot-cli --backup-radio <port> <outdir>\n");
+        printf("  opendepot-cli --report <in.cpg> [--json]\n");
+        printf("  opendepot-cli --radio-report <port> [--json]\n");
+        printf("  opendepot-cli --doctor <in.cpg> [<out.cpg>]\n");
+        printf("  opendepot-cli --diff <a.cpg> <b.cpg> [--json]\n");
         printf("  opendepot-cli --unlock <port>\n");
         printf("  opendepot-cli --security <port>\n");
         printf("  opendepot-cli --flashcode <in.cpg> [radio|platform]\n");
@@ -428,6 +524,9 @@ int wmain(int argc, wchar_t** argv) {
         return 1;
     }
     const std::wstring cmd = argv[1];
+    bool wantJson = false;
+    for (int i = 1; i < argc; ++i)
+        if (std::wstring(argv[i]) == L"--json") wantJson = true;
     if (cmd == L"--verify" && argc >= 3) {
         Codeplug cp;
         if (!LoadCodeplug(argv[2], cp)) {
@@ -804,6 +903,51 @@ int wmain(int argc, wchar_t** argv) {
         printf("passcode: enabled=%d password='%s'\n", pw.enabled ? 1 : 0, pw.password.c_str());
         DeleteFileW(reqsPath.c_str());
         DeleteFileW(rec.c_str());
+        return 0;
+    }
+    if (cmd == L"--report" && argc >= 3) {
+        Codeplug cp;
+        if (!LoadCodeplug(argv[2], cp)) { printf("LOAD FAILED: %s\n", cp.error.c_str()); return 2; }
+        printf("%s", (wantJson ? ServiceReportJson(cp, "") : ServiceReportText(cp, "")).c_str());
+        return 0;
+    }
+    if (cmd == L"--radio-report" && argc >= 3) {
+        const std::wstring port = argv[2];
+        std::string banner = QueryBanner(port);
+        Codeplug cp;
+        std::string err;
+        std::string meta;
+        if (!ReadRadioToCodeplug(port, cp, err, &meta)) {
+            printf("READ FAILED: %s\n", err.c_str());
+            return 2;
+        }
+        if (!meta.empty()) banner += (banner.empty() ? "" : "\n") + meta;
+        printf("%s", (wantJson ? ServiceReportJson(cp, banner) : ServiceReportText(cp, banner)).c_str());
+        return 0;
+    }
+    if (cmd == L"--doctor" && argc >= 3) {
+        Codeplug cp;
+        if (!LoadCodeplug(argv[2], cp)) { printf("LOAD FAILED: %s\n", cp.error.c_str()); return 2; }
+        const bool repair = (argc >= 4) && argv[3][0] != L'-';
+        DoctorResult res;
+        const bool ok = DoctorCodeplug(cp, res, repair);
+        printf("%s\n", res.issues.empty() ? "Codeplug doctor: healthy" : "Codeplug doctor: issues found");
+        for (const auto& s : res.issues) printf("  issue: %s\n", s.c_str());
+        for (const auto& s : res.fixes) printf("  fix:   %s\n", s.c_str());
+        if (!ok) { printf("  fatal: no identity record; cannot repair\n"); return 3; }
+        if (repair) {
+            std::string err;
+            if (!SaveCodeplug(argv[3], cp, err)) { printf("SAVE FAILED: %s\n", err.c_str()); return 2; }
+            printf("wrote repaired %ls\n", argv[3]);
+            return 0;
+        }
+        return res.issues.empty() ? 0 : 3;
+    }
+    if (cmd == L"--diff" && argc >= 4) {
+        Codeplug a, b;
+        if (!LoadCodeplug(argv[2], a)) { printf("LOAD A FAILED: %s\n", a.error.c_str()); return 2; }
+        if (!LoadCodeplug(argv[3], b)) { printf("LOAD B FAILED: %s\n", b.error.c_str()); return 2; }
+        printf("%s", (wantJson ? DiffCodeplugsJson(a, b) : DiffCodeplugsText(a, b)).c_str());
         return 0;
     }
     if (cmd == L"--backup-radio" && argc >= 4) {

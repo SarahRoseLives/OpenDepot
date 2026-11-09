@@ -109,6 +109,9 @@ struct App {
     bool showPasscodeResult = false;
     std::string passcodeResult;
 
+    bool showText = false;
+    std::string textTitle, textBody;
+
     char radioPort[16] = "COM20";
     bool radioBusy = false;
     bool showWriteConfirm = false;
@@ -850,6 +853,28 @@ static void DrawPasscodeDialogs() {
     }
 }
 
+static void ShowText(const std::string& title, const std::string& body) {
+    g_app.textTitle = title;
+    g_app.textBody = body;
+    g_app.showText = true;
+}
+
+static void DrawTextModal() {
+    if (g_app.showText) {
+        ImGui::OpenPopup("##odmsg");
+        g_app.showText = false;
+    }
+    if (ImGui::BeginPopupModal("##odmsg", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::TextUnformatted(g_app.textTitle.c_str());
+        ImGui::Separator();
+        ImGui::BeginChild("##odmsgbody", ImVec2(760, 420), true);
+        ImGui::TextUnformatted(g_app.textBody.c_str());
+        ImGui::EndChild();
+        if (ImGui::Button("Close")) ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+    }
+}
+
 static void DrawRadioConfirm() {
     if (g_app.showWriteConfirm) {
         ImGui::OpenPopup("Write to Radio");
@@ -906,6 +931,35 @@ static void DrawUI() {
                 for (auto& r : g_app.cp.records) if (!r.verified) ++bad;
                 g_app.status = bad ? "Verification found bad records." : "All records verified.";
             }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Service Report...", nullptr, false, g_app.loaded)) {
+                ShowText("Service Report", ServiceReportText(g_app.cp, ""));
+            }
+            if (ImGui::MenuItem("Codeplug Doctor...", nullptr, false, g_app.loaded)) {
+                DoctorResult res;
+                DoctorCodeplug(g_app.cp, res, false);
+                std::string body = res.issues.empty() ? "Healthy.\n" : "";
+                for (const auto& s : res.issues) body += "issue: " + s + "\n";
+                ShowText("Codeplug Doctor", body);
+            }
+            if (ImGui::MenuItem("Repair checksums/identity", nullptr, false, g_app.loaded)) {
+                DoctorResult res;
+                DoctorCodeplug(g_app.cp, res, true);
+                std::string body;
+                for (const auto& s : res.fixes) body += "fix: " + s + "\n";
+                if (body.empty()) body = "Nothing to repair.\n";
+                ShowText("Repair", body);
+            }
+            if (ImGui::MenuItem("Diff with file...", nullptr, false, g_app.loaded)) {
+                std::wstring p;
+                if (OpenDialog(p)) {
+                    Codeplug other;
+                    if (LoadCodeplug(p, other))
+                        ShowText("Codeplug Diff", DiffCodeplugsText(g_app.cp, other));
+                    else
+                        ShowText("Codeplug Diff", "Could not load: " + other.error);
+                }
+            }
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Radio")) {
@@ -953,6 +1007,7 @@ static void DrawUI() {
     DrawCreateDialog();
     DrawRadioConfirm();
     DrawPasscodeDialogs();
+    DrawTextModal();
 
     if (!g_app.loaded) {
         ImGui::TextWrapped("Open an ASTRO 25 .cpg codeplug. OpenDepot decodes the ADK compound "

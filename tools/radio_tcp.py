@@ -251,6 +251,7 @@ def main():
     replay_capture = None
     native_read = None
     reqs_file = None
+    meta_file = None
     auth_test = False
     write_ids = [0x10040000, 0x10050000, 0x10060000]
     args = sys.argv[1:]
@@ -271,6 +272,10 @@ def main():
             continue
         if a == "--reqs" and i + 1 < len(args):
             reqs_file = args[i + 1]
+            i += 2
+            continue
+        if a == "--meta" and i + 1 < len(args):
+            meta_file = args[i + 1]
             i += 2
             continue
         if a == "--replay-capture" and i + 1 < len(args):
@@ -540,8 +545,17 @@ def main():
 
     if native_read:
         req(bytes.fromhex("010600"))
-        req(bytes.fromhex("000f00"))
-        req(bytes.fromhex("001100"))
+        rv = req(bytes.fromhex("000f00"))
+        rs = req(bytes.fromhex("001100"))
+        if meta_file:
+            def _ascii(b):
+                if not b:
+                    return ''
+                return bytes(b[3:]).split(b'\x00')[0].decode('ascii', 'replace')
+            try:
+                open(meta_file, 'w').write('HOST=' + _ascii(rv) + '\nSERIAL=' + _ascii(rs) + '\n')
+            except Exception as e:
+                print('meta write failed', e, flush=True)
         req(bytes.fromhex("0012"))
         req(bytes.fromhex("0300"))
         base = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'build', 'radio-backups')

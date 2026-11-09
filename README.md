@@ -247,6 +247,23 @@ fail with "Class not registered", and firmware/flash memory is not dumped yet
 (the address map and boot-mode access are still being worked out). The codeplug
 and softpot tuning values are captured.
 
+## Service report, doctor, diff
+
+Read-only analysis tools (CLI):
+
+- `--report <in.cpg> [--json]` — model, serial, FLASHcode + decoded features,
+  passcode status, zone/channel summary and record counts.
+- `--radio-report <port> [--json]` — native read of the radio; includes the
+  `AT&V` banner and `HOST`/`SERIAL` from the handshake (Host/DSP).
+- `--doctor <in.cpg> [<out.cpg>]` — checks the header checksum, directory
+  checksum, per-record length/CRC and identity. With an output path it repairs
+  them, re-syncs identity and writes a fixed codeplug; exit 3 if unhealthy.
+- `--diff <a.cpg> <b.cpg> [--json]` — identity, FLASHcode, records by tag
+  (added/removed/changed) and zone/channel differences.
+
+GUI: **Tools → Service Report… / Codeplug Doctor… / Repair checksums/identity /
+Diff with file…**.
+
 ## Radio transport (recovered)
 
 Programming is exposed by the radio as an AT modem, then PPP, then RCMP:

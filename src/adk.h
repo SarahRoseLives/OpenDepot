@@ -55,6 +55,22 @@ struct CodeplugPassword {
 bool GetCodeplugPassword(const Codeplug& cp, CodeplugPassword& out);
 bool SetCodeplugPassword(Codeplug& cp, bool enabled, const std::string& password);
 
+// Service report (model/serial/flashcode+features/passcode/zones; banner = AT&V text).
+std::string ServiceReportText(const Codeplug& cp, const std::string& banner);
+std::string ServiceReportJson(const Codeplug& cp, const std::string& banner);
+
+// Codeplug doctor: verify/repair checksums, CRC, identity.
+struct DoctorResult {
+    std::vector<std::string> issues;
+    std::vector<std::string> fixes;
+    bool healthy() const { return issues.empty(); }
+};
+bool DoctorCodeplug(Codeplug& cp, DoctorResult& result, bool repair);
+
+// Human-readable diff of two codeplugs.
+std::string DiffCodeplugsText(const Codeplug& a, const Codeplug& b);
+std::string DiffCodeplugsJson(const Codeplug& a, const Codeplug& b);
+
 struct FeatureInfo {
     int nibble;
     int bit;
