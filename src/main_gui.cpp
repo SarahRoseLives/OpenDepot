@@ -19,6 +19,7 @@
 #include <thread>
 #include <atomic>
 #include <memory>
+#include <algorithm>
 
 using namespace opendepot;
 
@@ -52,6 +53,30 @@ static std::wstring GuiModelBasePath(const std::string& model) {
         if (GetFileAttributesW(p.c_str()) != INVALID_FILE_ATTRIBUTES) return p;
     }
     return L"";
+}
+
+// Available serial ports (from the registry device map).
+static std::vector<std::string> PortsList() {
+    std::vector<std::string> v;
+    HKEY k = nullptr;
+    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "HARDWARE\\DEVICEMAP\\SERIALCOMM", 0, KEY_READ, &k) ==
+        ERROR_SUCCESS) {
+        for (DWORD i = 0;; ++i) {
+            char name[256] = {};
+            BYTE data[256] = {};
+            DWORD nl = sizeof(name), dl = sizeof(data), type = 0;
+            LONG r = RegEnumValueA(k, i, name, &nl, nullptr, &type, data, &dl);
+            if (r != ERROR_SUCCESS) break;
+            if (type == REG_SZ && dl > 0) {
+                std::string s(reinterpret_cast<char*>(data));
+                if (!s.empty()) v.push_back(s);
+            }
+        }
+        RegCloseKey(k);
+    }
+    std::sort(v.begin(), v.end());
+    v.erase(std::unique(v.begin(), v.end()), v.end());
+    return v;
 }
 
 struct App {
@@ -545,15 +570,18 @@ static std::unique_ptr<RadioJob> g_radioJob;
 static std::thread g_radioThread;
 
 static void StartRadioJob(bool write) {
-    if (g_app.radioBusy || !g_app.loaded) return;
+    if (g_app.radioBusy) return;
+    if (write && !g_app.loaded) return;
     std::string err;
     if (write && !ValidateRadioCodeplug(g_app.cp, err)) {
         g_app.status = "Write refused: " + err;
         return;
     }
+    // A read can run with no codeplug open (uses OpenDepot's built-in tag list).
+    const bool useTpl = write || g_app.loaded;
     const std::wstring tpl = GuiTemp(write ? L"gui-write.cpg" : L"gui-template.cpg");
     const std::wstring out = GuiTemp(L"gui-read.cpg");
-    if (!SaveCodeplug(tpl, g_app.cp, err)) {
+    if (useTpl && !SaveCodeplug(tpl, g_app.cp, err)) {
         g_app.status = "Radio: cannot stage codeplug: " + err;
         return;
     }
@@ -570,7 +598,7 @@ static void StartRadioJob(bool write) {
     RadioJob* raw = job.get();
     g_radioJob = std::move(job);
     const std::string port(g_app.radioPort);
-    g_radioThread = std::thread([raw, write, port, tpl, out, backup]() {
+    g_radioThread = std::thread([raw, write, useTpl, port, tpl, out, backup]() {
         std::string e;
         if (write) {
             std::wstring bargs = L"--read-radio " + std::wstring(port.begin(), port.end()) +
@@ -582,9 +610,16 @@ static void StartRadioJob(bool write) {
                 return;
             }
         }
-        std::wstring args = (write ? L"--write-radio " : L"--read-radio ") +
-                            std::wstring(port.begin(), port.end()) + L" \"" + tpl + L"\"";
-        if (!write) args += L" \"" + out + L"\"";
+        std::wstring portw(port.begin(), port.end());
+        std::wstring args;
+        if (write) {
+            args = L"--write-radio " + portw + L" \"" + tpl + L"\"";
+        } else if (useTpl) {
+            args = L"--read-radio " + portw + L" \"" + tpl + L"\" \"" + out + L"\"";
+        } else {
+            // No codeplug open: read using the built-in tag list.
+            args = L"--read-radio " + portw + L" \"" + out + L"\"";
+        }
         raw->ok = RunCli(args, e);
         if (!raw->ok) {
             raw->message = e;
@@ -698,11 +733,26 @@ static void DrawUI() {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Radio")) {
-            ImGui::SetNextItemWidth(90);
-            ImGui::InputText("Port", g_app.radioPort, sizeof(g_app.radioPort));
-            const bool can = g_app.loaded && !g_app.radioBusy;
-            if (ImGui::MenuItem("Read from Radio...", nullptr, false, can)) StartRadioJob(false);
-            if (ImGui::MenuItem("Write to Radio...", nullptr, false, can)) g_app.showWriteConfirm = true;
+            ImGui::SetNextItemWidth(120);
+            static std::vector<std::string> ports;
+            static double lastScan = -100.0;
+            if (ImGui::GetTime() - lastScan > 2.0) {
+                ports = PortsList();
+                lastScan = ImGui::GetTime();
+            }
+            if (ImGui::BeginCombo("Port", g_app.radioPort)) {
+                for (auto& p : ports) {
+                    bool sel = (p == g_app.radioPort);
+                    if (ImGui::Selectable(p.c_str(), sel))
+                        snprintf(g_app.radioPort, sizeof(g_app.radioPort), "%s", p.c_str());
+                    if (sel) ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+            const bool canRead = !g_app.radioBusy;
+            const bool canWrite = g_app.loaded && !g_app.radioBusy;
+            if (ImGui::MenuItem("Read from Radio...", nullptr, false, canRead)) StartRadioJob(false);
+            if (ImGui::MenuItem("Write to Radio...", nullptr, false, canWrite)) g_app.showWriteConfirm = true;
             if (g_app.radioBusy) {
                 if (ImGui::MenuItem("Cancel")) CancelRadio();
                 ImGui::TextUnformatted(g_app.radioStatus.c_str());

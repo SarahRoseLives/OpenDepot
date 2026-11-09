@@ -142,7 +142,8 @@ static bool ApplyRecBuffer(const std::vector<uint8_t>& buf, const Codeplug& tpl,
         r.raw.assign(buf.begin() + o, buf.begin() + o + 6 + len);
         r.checksum = uint16_t((r.raw[r.raw.size() - 2] << 8) | r.raw[r.raw.size() - 1]);
         r.verified = (Crc16Ccitt(r.raw.data() + 6, r.raw.size() - 8) == r.checksum);
-        r.type = 0x0080;
+        const uint16_t tg = uint16_t(r.id >> 16);
+        r.type = (tg == 0x1004 || tg == 0x1005 || tg == 0x1006) ? 0x0081 : 0x0080;
         for (const auto& t : tpl.records)
             if ((t.id >> 16) == (r.id >> 16)) { r.type = t.type; break; }
         out.records.push_back(std::move(r));
@@ -547,12 +548,39 @@ int wmain(int argc, wchar_t** argv) {
         printf("wrote %ls (%zu records, %zu CRC-ok)\n", argv[4], out.records.size(), good);
         return 0;
     }
-    if (cmd == L"--read-radio" && argc >= 5) {
+    if (cmd == L"--read-radio" && argc >= 4) {
+        // Two forms:
+        //   --read-radio <port> <template.cpg> <out.cpg>
+        //   --read-radio <port> <out.cpg>            (read any radio, no template)
+        const bool useTemplate = (argc >= 5);
         Codeplug tpl;
-        if (!LoadCodeplug(argv[3], tpl)) { printf("LOAD FAILED: %s\n", tpl.error.c_str()); return 2; }
+        std::wstring outPath;
+        if (useTemplate) {
+            if (!LoadCodeplug(argv[3], tpl)) { printf("LOAD FAILED: %s\n", tpl.error.c_str()); return 2; }
+            outPath = argv[4];
+        } else {
+            // Header/type basis from a built-in schema; records come from the radio.
+            std::string berr;
+            std::string first = BuiltinFirstModel();
+            if (!first.empty()) BuiltinTemplate(first, tpl, berr);
+            outPath = argv[3];
+        }
         std::wstring tags = TempPath(L"tags.bin");
         std::wstring rec = TempPath(L"read.rec");
-        if (!WriteTagListFile(tpl, tags)) { printf("taglist write failed\n"); return 2; }
+        if (useTemplate) {
+            if (!WriteTagListFile(tpl, tags)) { printf("taglist write failed\n"); return 2; }
+        } else {
+            std::vector<std::pair<uint16_t, uint16_t>> pairs;
+            BuiltinTagList(pairs);
+            FILE* f = _wfopen(tags.c_str(), L"wb");
+            if (!f) { printf("taglist write failed\n"); return 2; }
+            for (auto& p : pairs) {
+                uint8_t b[4] = {uint8_t(p.first >> 8), uint8_t(p.first), uint8_t(p.second >> 8),
+                                uint8_t(p.second)};
+                fwrite(b, 1, 4, f);
+            }
+            fclose(f);
+        }
         std::string err;
         std::wstring args = L"--read " + std::wstring(argv[2]) + L" \"" + tags + L"\" \"" + rec + L"\"";
         if (!RunHelper(args, err, 180000)) { printf("READ FAILED: %s\n", err.c_str()); return 2; }
@@ -560,12 +588,16 @@ int wmain(int argc, wchar_t** argv) {
         if (!ReadWholeFile(rec, buf)) { printf("read output missing\n"); return 2; }
         Codeplug out;
         if (!ApplyRecBuffer(buf, tpl, out, err)) { printf("READ PARSE FAILED: %s\n", err.c_str()); return 2; }
-        if (!SaveCodeplug(argv[4], out, err)) { printf("SAVE FAILED: %s\n", err.c_str()); return 2; }
+        if (!useTemplate) {
+            std::string s, m;
+            if (ReadIdentityFromCodeplug(out, s, m)) UpdateIdentity(out, s, m);
+        }
+        if (!SaveCodeplug(outPath, out, err)) { printf("SAVE FAILED: %s\n", err.c_str()); return 2; }
         size_t good = 0;
         for (auto& r : out.records) if (r.verified) ++good;
         DeleteFileW(tags.c_str());
         DeleteFileW(rec.c_str());
-        printf("read %zu records (%zu CRC-ok) -> %ls\n", out.records.size(), good, argv[4]);
+        printf("read %zu records (%zu CRC-ok) -> %ls\n", out.records.size(), good, outPath.c_str());
         return good == out.records.size() ? 0 : 3;
     }
     if (cmd == L"--erase-radio" && argc >= 3) {

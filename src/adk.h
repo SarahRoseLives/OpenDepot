@@ -42,6 +42,7 @@ bool SaveCodeplug(const std::wstring& path, const Codeplug& cp, std::string& err
 std::string VerifyCodeplug(const Codeplug& cp);
 std::string DumpCodeplug(const Codeplug& cp);
 bool UpdateIdentity(Codeplug& cp, const std::string& serial, const std::string& model);
+bool ReadIdentityFromCodeplug(const Codeplug& cp, std::string& serial, std::string& model);
 bool ValidateRadioCodeplug(const Codeplug& cp, std::string& err);
 
 struct FeatureInfo {
@@ -108,6 +109,8 @@ struct CreateOptions {
     std::vector<std::string> addons;
 };
 bool BuiltinTemplate(const std::string& model, Codeplug& out, std::string& err);
+void BuiltinTagList(std::vector<std::pair<uint16_t, uint16_t>>& out);
+std::string BuiltinFirstModel();
 bool CreateCodeplug(const Codeplug& templ, const CreateOptions& opt, Codeplug& out,
                     std::string& err);
 bool MakeConventional(Codeplug& cp, std::string& err);

@@ -499,6 +499,21 @@ std::string VerifyCodeplug(const Codeplug& cp) {
     return os.str();
 }
 
+bool ReadIdentityFromCodeplug(const Codeplug& cp, std::string& serial, std::string& model) {
+    const Record* r = nullptr;
+    for (const auto& x : cp.records) if (x.id == 0x10040000u) { r = &x; break; }
+    if (!r || r->raw.size() < 12) return false;
+    const uint8_t* p = r->raw.data() + 6;
+    size_t n = r->raw.size() - 6 - 2;  // exclude trailing CRC
+    size_t o = 2;
+    serial.clear();
+    model.clear();
+    while (o < n && p[o]) serial.push_back(char(p[o++]));
+    while (o < n && p[o] == 0) ++o;
+    while (o < n && p[o]) model.push_back(char(p[o++]));
+    return !serial.empty() && !model.empty();
+}
+
 bool UpdateIdentity(Codeplug& cp, const std::string& serial, const std::string& model) {
     if (serial.size() > 19 || model.size() > 19) return false;
     const std::string oldSerial = cp.header.serial;
@@ -992,6 +1007,29 @@ bool BuiltinTemplate(const std::string& model, Codeplug& out, std::string& err) 
     }
     if (out.records.empty()) { err = "empty built-in schema"; return false; }
     return true;
+}
+
+std::string BuiltinFirstModel() {
+    return kModelCount > 0 ? std::string(kModels[0].model) : std::string();
+}
+
+void BuiltinTagList(std::vector<std::pair<uint16_t, uint16_t>>& out) {
+    out.clear();
+    for (int i = 0; i < kModelCount; ++i) {
+        const ModelBlob& mb = kModels[i];
+        size_t o = 0;
+        while (o + 8 <= mb.size) {
+            uint32_t id = (uint32_t(mb.data[o]) << 24) | (uint32_t(mb.data[o + 1]) << 16) |
+                          (uint32_t(mb.data[o + 2]) << 8) | mb.data[o + 3];
+            uint16_t part = uint16_t((mb.data[o + 4] << 8) | mb.data[o + 5]);
+            uint16_t len = uint16_t((mb.data[o + 6] << 8) | mb.data[o + 7]);
+            o += 8;
+            if (o + len > mb.size) break;
+            std::pair<uint16_t, uint16_t> p{part, uint16_t(id >> 16)};
+            if (std::find(out.begin(), out.end(), p) == out.end()) out.push_back(p);
+            o += len;
+        }
+    }
 }
 
 bool CreateCodeplug(const Codeplug& templ, const CreateOptions& opt, Codeplug& out,
