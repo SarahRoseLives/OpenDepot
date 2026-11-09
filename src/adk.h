@@ -107,6 +107,7 @@ struct CreateOptions {
     std::vector<std::string> packages;
     std::vector<std::string> addons;
 };
+bool BuiltinTemplate(const std::string& model, Codeplug& out, std::string& err);
 bool CreateCodeplug(const Codeplug& templ, const CreateOptions& opt, Codeplug& out,
                     std::string& err);
 bool MakeConventional(Codeplug& cp, std::string& err);

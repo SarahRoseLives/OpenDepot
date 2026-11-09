@@ -1,4 +1,5 @@
 #include "adk.h"
+#include "model_db.h"
 
 #include <windows.h>
 #include <objbase.h>
@@ -502,7 +503,6 @@ bool UpdateIdentity(Codeplug& cp, const std::string& serial, const std::string& 
     if (serial.size() > 19 || model.size() > 19) return false;
     const std::string oldSerial = cp.header.serial;
     const std::string oldModel = cp.header.model;
-    if (serial.size() > oldSerial.size() || model.size() > oldModel.size()) return false;
 
     memset(cp.header.raw.data() + 0x30, 0, 20);
     memcpy(cp.header.raw.data() + 0x30, serial.data(), serial.size());
@@ -932,6 +932,66 @@ std::string OptionLabel(const std::string& code) {
     for (const auto& e : kLabels)
         if (code == e.code) return e.label;
     return code;
+}
+
+// Build a fresh codeplug record set from OpenDepot's own generated model database
+// (no .cpg file is shipped or read).
+bool BuiltinTemplate(const std::string& model, Codeplug& out, std::string& err) {
+    err.clear();
+    const ModelBlob* mb = nullptr;
+    for (int i = 0; i < kModelCount; ++i)
+        if (model == kModels[i].model) { mb = &kModels[i]; break; }
+    if (!mb) {
+        err = "no built-in schema for model " + model;
+        return false;
+    }
+    out = Codeplug();
+    // Header (AdkFileHeader) + parsed fields, same as LoadCodeplug.
+    std::memcpy(out.header.raw.data(), mb->header, 800);
+    auto& H = out.header;
+    H.version = CStrField(H.raw, 0, 6);
+    H.flag = H.raw[8];
+    H.encType = (H.flag & 0x18) >> 3;
+    H.adkType = H.flag & 7;
+    H.model = CStrField(H.raw, 0x1C, 20);
+    H.serial = CStrField(H.raw, 0x30, 20);
+    std::memcpy(H.guid.data(), H.raw.data() + 0x0C, 16);
+    out.encType = H.encType;
+    if (H.encType == 1) {
+        size_t klen = H.raw[0x239];
+        if (klen && 0x23A + klen <= H.raw.size()) {
+            out.keyBlob.assign(H.raw.begin() + 0x23A, H.raw.begin() + 0x23A + klen);
+            if (!AdkCustomDecrypt(out.keyBlob, out.seed) || out.seed.size() < 9) {
+                err = "cannot recover seed for built-in header";
+                return false;
+            }
+        }
+    }
+    out.header.model = model;
+    const uint8_t* d = mb->data;
+    size_t o = 0;
+    while (o + 8 <= mb->size) {
+        uint32_t id = (uint32_t(d[o]) << 24) | (uint32_t(d[o + 1]) << 16) |
+                      (uint32_t(d[o + 2]) << 8) | d[o + 3];
+        uint16_t part = uint16_t((d[o + 4] << 8) | d[o + 5]);
+        uint16_t len = uint16_t((d[o + 6] << 8) | d[o + 7]);
+        o += 8;
+        if (o + len > mb->size) { err = "corrupt built-in schema"; return false; }
+        Record r;
+        r.id = id;
+        r.type = part;
+        r.raw.resize(size_t(6) + len);
+        r.raw[0] = uint8_t(id >> 24); r.raw[1] = uint8_t(id >> 16);
+        r.raw[2] = uint8_t(id >> 8);  r.raw[3] = uint8_t(id);
+        r.raw[4] = uint8_t(len >> 8); r.raw[5] = uint8_t(len);
+        std::memcpy(r.raw.data() + 6, d + o, len);
+        r.checksum = uint16_t((r.raw[r.raw.size() - 2] << 8) | r.raw[r.raw.size() - 1]);
+        r.verified = true;
+        out.records.push_back(std::move(r));
+        o += len;
+    }
+    if (out.records.empty()) { err = "empty built-in schema"; return false; }
+    return true;
 }
 
 bool CreateCodeplug(const Codeplug& templ, const CreateOptions& opt, Codeplug& out,

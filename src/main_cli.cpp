@@ -432,14 +432,10 @@ int wmain(int argc, wchar_t** argv) {
         WideCharToMultiByte(CP_UTF8, 0, argv[4], -1, serial, sizeof(serial), nullptr, nullptr);
         if (argc >= 6)
             WideCharToMultiByte(CP_UTF8, 0, argv[5], -1, flash, sizeof(flash), nullptr, nullptr);
-        std::wstring base = ModelBasePath(model);
-        if (base.empty()) {
-            printf("NO BASE for model %s (add resources/models/<model>.cpg)\n", model);
-            return 2;
-        }
         Codeplug tpl;
-        if (!LoadCodeplug(base, tpl)) {
-            printf("LOAD FAILED: %s\n", tpl.error.c_str());
+        std::string berr;
+        if (!BuiltinTemplate(model, tpl, berr)) {
+            printf("NO BUILT-IN SCHEMA for model %s: %s\n", model, berr.c_str());
             return 2;
         }
         CreateOptions opt;

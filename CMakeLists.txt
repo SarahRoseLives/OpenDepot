@@ -35,6 +35,7 @@ add_executable(opendepot-cli
     src/main_cli.cpp
     src/adk.cpp
     src/flashcode_db.cpp
+    src/model_db.cpp
     ${APP_RC}
 )
 target_include_directories(opendepot-cli PRIVATE src)
@@ -44,6 +45,7 @@ add_executable(OpenDepot WIN32
     src/main_gui.cpp
     src/adk.cpp
     src/flashcode_db.cpp
+    src/model_db.cpp
     ${APP_RC}
 )
 target_include_directories(OpenDepot PRIVATE src)

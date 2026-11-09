@@ -272,16 +272,7 @@ static void OpenCreateDialog() {
     } else {
         g_app.createFlash[0] = 0;
         g_app.fcBase[0] = 0;
-        // Template-free: seed the Serial from the bundled per-model base.
-        if (g_app.createSerial[0] == 0 && g_app.createModel[0] != 0) {
-            std::wstring bpath = GuiModelBasePath(g_app.createModel);
-            if (!bpath.empty()) {
-                Codeplug b;
-                if (LoadCodeplug(bpath, b) && !b.header.serial.empty())
-                    snprintf(g_app.createSerial, sizeof(g_app.createSerial), "%s",
-                             b.header.serial.c_str());
-            }
-        }
+        // Serial is entered by the user (or taken from a loaded/read codeplug).
     }
     const auto pkgs = PackagesForModel(g_app.createModel);
     g_app.createPkg.assign(pkgs.size(), 0);
@@ -430,14 +421,10 @@ static void DrawCreateDialog() {
             templ = g_app.cp;
             haveTpl = true;
         } else {
-            // Template-free: fall back to the bundled per-model base.
-            std::wstring base = GuiModelBasePath(std::string(g_app.createModel));
-            if (!base.empty()) {
-                haveTpl = LoadCodeplug(base, templ);
-                if (!haveTpl) g_app.createError = "Bundled base load failed: " + templ.error;
-            } else {
-                g_app.createError = "No bundled base for model; choose a template .cpg";
-            }
+            // Template-free: build from OpenDepot's generated model schema.
+            std::string berr;
+            haveTpl = BuiltinTemplate(std::string(g_app.createModel), templ, berr);
+            if (!haveTpl) g_app.createError = "No built-in schema for model: " + berr;
         }
         if (haveTpl) {
             CreateOptions opt;
@@ -446,15 +433,6 @@ static void DrawCreateDialog() {
             opt.type = TypeOptions()[g_app.createType];
             opt.model = g_app.createModel;
             opt.serial = g_app.createSerial;
-            if (opt.serial.empty()) {
-                // Template-free default: inherit the serial from the bundled model base
-                // (the user can still edit the Serial field).
-                std::wstring bpath = GuiModelBasePath(opt.model);
-                if (!bpath.empty()) {
-                    Codeplug b;
-                    if (LoadCodeplug(bpath, b)) opt.serial = b.header.serial;
-                }
-            }
             opt.flashcode = g_app.createFlash;
             for (int i = 0; i < (int)pkgs.size(); ++i)
                 if (i < (int)g_app.createPkg.size() && g_app.createPkg[i]) opt.packages.push_back(pkgs[i]);
