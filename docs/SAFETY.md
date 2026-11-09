@@ -1,3 +1,13 @@
+> **WARNING — THIS SOFTWARE CAN BRICK YOUR RADIO.**
+>
+> OpenDepot is experimental, reverse-engineered software. A write can blank or
+> corrupt a radio's codeplug (for example `FAIL 01/92`), and an interrupted write
+> can leave it unbootable. It has **only been tested on a single XTS 2500**.
+> **Firmware flashing is not supported** and cannot be repaired by OpenDepot.
+> Keep a verified backup, run `--check-write` before writing, never force a
+> refused write, and do not use it on a radio you cannot afford to lose.
+> Provided as is, with no warranty; not affiliated with Motorola Solutions.
+
 # Safety: why OpenDepot caused FAIL 01/92, and what now prevents it
 
 ## 1. What FAIL 01/92 is
@@ -25,12 +35,12 @@ Artifacts left under `%TEMP%\`:
 | `opendepot-gui\gui-read.cpg` | 08:25 | 246 | **absent** |
 
 `read-main.rec` shows the radio was healthy at 08:15 (its `0x10040000` payload
-contains `205CNX2873` and `H46UCF9PW6BN`). By 08:22 the GUI read produced
+contains `REDACTED` and `H46UCF9PW6BN`). By 08:22 the GUI read produced
 `gui-read.cpg` with **no identity records at all**, i.e. the radio had already
 lost its identity block. The cause was a write between the two reads.
 
 The recovered radio confirmed the same state: `AT&V` was truncated at
-`SERIAL:` with `MODEL:<0x01>` until the good codeplug (`205CNX2873-test-radio-backup.cpg`)
+`SERIAL:` with `MODEL:<0x01>` until the good codeplug (`REDACTED-test-radio-backup.cpg`)
 was written back.
 
 ## 3. The unsafe paths that existed
@@ -129,14 +139,14 @@ opendepot-cli --write-radio COM20 updated.cpg
 3. Do not use `--erase-radio`, `--deltype`, `--delitem`, or `--replace-radio`
    casually. They remain available but are gated/validated now.
 4. If a radio is already in FAIL 01/92, recover it by writing a **verified good
-   codeplug** for that exact model/serial (this is what restored 205CNX2873).
+   codeplug** for that exact model/serial (this is what restored REDACTED).
 
 ## 6. Verification performed
 
 - Release build succeeds (`OpenDepot.exe`, `opendepot-cli.exe`).
-- `--check-write build\radio-backups\205CNX2873-test-radio-backup.cpg`
-  → `OK: safe to write (identity 205CNX2873/H46UCF9PW6BN, 139 records)`.
+- `--check-write build\radio-backups\REDACTED-test-radio-backup.cpg`
+  → `OK: safe to write (identity REDACTED/H46UCF9PW6BN, 139 records)`.
 - `--check-write %TEMP%\opendepot-gui\gui-template.cpg`
-  → `OK: safe to write (identity 205CNX2873/H46UCF9PW6BN, 447 records)`.
+  → `OK: safe to write (identity REDACTED/H46UCF9PW6BN, 447 records)`.
 - `--check-write %TEMP%\opendepot-gui\gui-read.cpg`
   → `REFUSED: missing identity record 0x10040000 ... FAIL 01/92` (exit 3).

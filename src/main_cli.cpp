@@ -359,23 +359,38 @@ static bool VerifyIdentityAfterWrite(const std::wstring& port, const Codeplug& c
 int wmain(int argc, wchar_t** argv) {
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     if (argc < 2) {
+        printf("WARNING: experimental; a write can BRICK your radio. Keep a verified backup.\n");
+        printf("         Only tested on one XTS 2500. Firmware flashing is not supported.\n");
         printf("usage:\n");
         printf("  opendepot-cli --verify <in.cpg>\n");
         printf("  opendepot-cli --dump <in.cpg>\n");
         printf("  opendepot-cli --records <in.cpg>\n");
         printf("  opendepot-cli --clone <in.cpg> <out.cpg>\n");
-        printf("  opendepot-cli --create <template.cpg> <out.cpg> <serial> <model> <flashcode>\n");
         printf("  opendepot-cli --models\n");
-        printf("  opendepot-cli --conventional <in.cpg> <out.cpg>\n");
-        printf("  opendepot-cli --rec <in.cpg> <out.rec>\n");
-        printf("  opendepot-cli --taglist <in.cpg> <out.bin>\n");
-        printf("  opendepot-cli --read-radio <port> <template.cpg> <out.cpg>\n");
-        printf("  opendepot-cli --write-radio <port> <in.cpg>\n");
-        printf("  opendepot-cli --check-write <in.cpg>\n");
-        printf("  opendepot-cli --flashcode-options <radio|platform>\n");
-        printf("  opendepot-cli --flashcode <in.cpg> [radio|platform]\n");
-        printf("  opendepot-cli --build-flashcode <radio|platform> <base> <code,code,...>\n");
+        printf("  opendepot-cli --zones <in.cpg>\n");
+        printf("  opendepot-cli --set-zone-name <in.cpg> <out.cpg> <zoneIndex> <name>\n");
+        printf("  opendepot-cli --set-channel-name <in.cpg> <out.cpg> <zoneIndex> <chanIndex> <name>\n");
+        printf("  opendepot-cli --set-channel-freq <in.cpg> <out.cpg> <zoneIndex> <chanIndex> <rxMHz> <txMHz>\n");
         printf("  opendepot-cli --set-identity <in.cpg> <out.cpg> <serial> <model>\n");
+        printf("  opendepot-cli --flashcode <in.cpg> [radio|platform]\n");
+        printf("  opendepot-cli --set-flashcode <in.cpg> <out.cpg> <flashcode>\n");
+        printf("  opendepot-cli --flashcode-options <radio|platform>\n");
+        printf("  opendepot-cli --build-flashcode <radio|platform> <base> <code,code,...>\n");
+        printf("  opendepot-cli --create <template.cpg> <out.cpg> <serial> <model> <flashcode>\n");
+        printf("  opendepot-cli --create-new <out.cpg> <model> <serial> [flashcode]\n");
+        printf("  opendepot-cli --conventional <in.cpg> <out.cpg>\n");
+        printf("  opendepot-cli --conventional-ref <ref.cpg> <src.cpg> <out.cpg>\n");
+        printf("  opendepot-cli --create-conventional <template.cpg> <out.cpg> <serial> <model>\n");
+        printf("  opendepot-cli --rec <in.cpg> <out.rec>\n");
+        printf("  opendepot-cli --from-rec <template.cpg> <in.rec> <out.cpg>\n");
+        printf("  opendepot-cli --taglist <in.cpg> <out.bin>\n");
+        printf("  opendepot-cli --ishlist <in.cpg> <out.bin>\n");
+        printf("  opendepot-cli --read-radio <port> <out.cpg>\n");
+        printf("  opendepot-cli --read-radio <port> <template.cpg> <out.cpg>\n");
+        printf("  opendepot-cli --check-write <in.cpg>\n");
+        printf("  opendepot-cli --write-radio <port> <in.cpg>\n");
+        printf("  opendepot-cli --erase-radio <port> [--yes-erase]\n");
+        printf("  opendepot-cli --replace-radio <port> <old.cpg> <new.cpg>\n");
         return 1;
     }
     const std::wstring cmd = argv[1];
