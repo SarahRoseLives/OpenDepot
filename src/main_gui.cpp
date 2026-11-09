@@ -272,6 +272,16 @@ static void OpenCreateDialog() {
     } else {
         g_app.createFlash[0] = 0;
         g_app.fcBase[0] = 0;
+        // Template-free: seed the Serial from the bundled per-model base.
+        if (g_app.createSerial[0] == 0 && g_app.createModel[0] != 0) {
+            std::wstring bpath = GuiModelBasePath(g_app.createModel);
+            if (!bpath.empty()) {
+                Codeplug b;
+                if (LoadCodeplug(bpath, b) && !b.header.serial.empty())
+                    snprintf(g_app.createSerial, sizeof(g_app.createSerial), "%s",
+                             b.header.serial.c_str());
+            }
+        }
     }
     const auto pkgs = PackagesForModel(g_app.createModel);
     g_app.createPkg.assign(pkgs.size(), 0);
@@ -436,6 +446,15 @@ static void DrawCreateDialog() {
             opt.type = TypeOptions()[g_app.createType];
             opt.model = g_app.createModel;
             opt.serial = g_app.createSerial;
+            if (opt.serial.empty()) {
+                // Template-free default: inherit the serial from the bundled model base
+                // (the user can still edit the Serial field).
+                std::wstring bpath = GuiModelBasePath(opt.model);
+                if (!bpath.empty()) {
+                    Codeplug b;
+                    if (LoadCodeplug(bpath, b)) opt.serial = b.header.serial;
+                }
+            }
             opt.flashcode = g_app.createFlash;
             for (int i = 0; i < (int)pkgs.size(); ++i)
                 if (i < (int)g_app.createPkg.size() && g_app.createPkg[i]) opt.packages.push_back(pkgs[i]);
