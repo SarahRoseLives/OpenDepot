@@ -331,7 +331,7 @@ def main():
                 radio_seq = tseq
                 print("SYN-ACK! radio ISN =", hex(tseq))
     if radio_seq is None:
-        print("no SYN-ACK"); link.s.close(); return
+        print("no SYN-ACK"); link.s.close(); sys.exit(3)
 
     my_seq = (seq + 1) & 0xFFFFFFFF
     their_seq = (radio_seq + 1) & 0xFFFFFFFF
