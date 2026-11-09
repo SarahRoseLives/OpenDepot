@@ -1,0 +1,1596 @@
+{
+ "Astro_XTS5000": [
+  {
+   "nibble": 0,
+   "bit": 0,
+   "code": "Q806",
+   "label": "ASTRO IMBE Digital Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 0,
+   "bit": 2,
+   "code": "H14",
+   "label": "Enhanced Digital ID Display",
+   "tooltip": ""
+  },
+  {
+   "nibble": 1,
+   "bit": 1,
+   "code": "Q52",
+   "label": "Federal Government FPP",
+   "tooltip": ""
+  },
+  {
+   "nibble": 1,
+   "bit": 2,
+   "code": "H869",
+   "label": "Hardware Multikey Encryption",
+   "tooltip": ""
+  },
+  {
+   "nibble": 1,
+   "bit": 3,
+   "code": "Q498",
+   "label": "Hardware Multikey Encryption w/ OTAR",
+   "tooltip": "Q498 This option requires the following: Q806 ASTRO IMBE Digital Operation Q947 APCO Packet Data Interface This option automatically includes H04 Conventional Tactical Rekey w/ Multikey"
+  },
+  {
+   "nibble": 2,
+   "bit": 0,
+   "code": "H43",
+   "label": "Trunked Remote Monitor/Radio Trace",
+   "tooltip": ""
+  },
+  {
+   "nibble": 2,
+   "bit": 3,
+   "code": "H46",
+   "label": "Trunked One Touch Status Message",
+   "tooltip": ""
+  },
+  {
+   "nibble": 3,
+   "bit": 2,
+   "code": "Q507",
+   "label": "12.5 kHz FCC Mandate",
+   "tooltip": ""
+  },
+  {
+   "nibble": 4,
+   "bit": 3,
+   "code": "G996",
+   "label": "Over the Air Provisioning",
+   "tooltip": "G996 This option requires the following: Q806 ASTRO IMBE Digital Operation Q947 APCO Packet Data Interface"
+  },
+  {
+   "nibble": 5,
+   "bit": 0,
+   "code": "H35",
+   "label": "Conventional Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 1,
+   "code": "H02",
+   "label": "Encrypted Tactical Inhibit",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 2,
+   "code": "H37",
+   "label": "SmartNet Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 3,
+   "code": "H38",
+   "label": "SmartZone Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 0,
+   "code": "G857",
+   "label": "FDNY Emergency Rx/Tx Tone Set",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 1,
+   "code": "Q369",
+   "label": "Inter System Roaming ISSI",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 2,
+   "code": "H04",
+   "label": "Conventional Tactical Rekey w/ Multikey",
+   "tooltip": "H04 This option is automatically included with Q498 Hardware Multikey Encryption w/ OTAR This option requires the following: Q806 ASTRO IMBE Digital Operation Q947 APCO Packet Data Interface This option not compatible with Q498 Hardware Multikey Encryption w/ OTAR"
+  },
+  {
+   "nibble": 6,
+   "bit": 3,
+   "code": "H345",
+   "label": "ASTRO 25 Trunking Radio Authentication",
+   "tooltip": "H345 This option requires the following: G806 ASTRO IMBE Digital Operation G51 SmartZone Systems Operation G173 SmartZone Omnilink MultiZone Operation G361 ASTRO 25 9600 Baud Trunking"
+  },
+  {
+   "nibble": 7,
+   "bit": 2,
+   "code": "Q352",
+   "label": "User Definable Soft ID",
+   "tooltip": "Q352 This option is depreciated as of firmware R09"
+  },
+  {
+   "nibble": 8,
+   "bit": 0,
+   "code": "Q947",
+   "label": "APCO Packet Data Interface",
+   "tooltip": "Q947 This option requires Q806 ASTRO IMBE Digital Operation"
+  },
+  {
+   "nibble": 8,
+   "bit": 1,
+   "code": "Q241",
+   "label": "Analog Only Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 9,
+   "bit": 0,
+   "code": "Q53",
+   "label": "FCC FPP And Radio Cloning",
+   "tooltip": ""
+  },
+  {
+   "nibble": 9,
+   "bit": 1,
+   "code": "Q387",
+   "label": "Conventional Voting Scan",
+   "tooltip": ""
+  },
+  {
+   "nibble": 9,
+   "bit": 2,
+   "code": "Q173",
+   "label": "SmartZone Omnilink MultiZone Operation",
+   "tooltip": "Q173 This option requires H38 SmartZone Systems Operation"
+  },
+  {
+   "nibble": 9,
+   "bit": 3,
+   "code": "Q182",
+   "label": "Enhanced Radio Control Protocol",
+   "tooltip": ""
+  }
+ ],
+ "Astro_XTS2500": [
+  {
+   "nibble": 0,
+   "bit": 0,
+   "code": "Q806",
+   "label": "ASTRO IMBE Digital Operation",
+   "tooltip": "Q806 This option is automatically included with the following: Q574 Astro 9600 Operation Package Q575 Astro 3600 Digital Operation Package Q811 Digital MDC Conventional Package"
+  },
+  {
+   "nibble": 0,
+   "bit": 2,
+   "code": "H14",
+   "label": "Enhanced Digital ID Display",
+   "tooltip": "H14 This option is automatically included with the following: Q574 Astro 9600 Operation Package Q575 Astro 3600 Digital Operation Package"
+  },
+  {
+   "nibble": 1,
+   "bit": 1,
+   "code": "Q52",
+   "label": "Federal Government FPP",
+   "tooltip": ""
+  },
+  {
+   "nibble": 1,
+   "bit": 2,
+   "code": "H869",
+   "label": "Hardware Multikey Encryption",
+   "tooltip": ""
+  },
+  {
+   "nibble": 1,
+   "bit": 3,
+   "code": "Q498",
+   "label": "Hardware Multikey Encryption w/ OTAR",
+   "tooltip": "Q498 This option requires the following: Q806 ASTRO IMBE Digital Operation Q947 APCO Packet Data Interface This option automatically includes H04 Conventional Tactical Rekey w/ Multikey"
+  },
+  {
+   "nibble": 2,
+   "bit": 0,
+   "code": "H43",
+   "label": "Trunked Remote Monitor/Radio Trace",
+   "tooltip": ""
+  },
+  {
+   "nibble": 2,
+   "bit": 3,
+   "code": "H46",
+   "label": "Trunked One Touch Status Message",
+   "tooltip": ""
+  },
+  {
+   "nibble": 3,
+   "bit": 2,
+   "code": "Q507",
+   "label": "12.5 kHz FCC Mandate",
+   "tooltip": ""
+  },
+  {
+   "nibble": 4,
+   "bit": 0,
+   "code": "Q883",
+   "label": "3600/9600 Interoperability/Mixed Mode Signalling",
+   "tooltip": ""
+  },
+  {
+   "nibble": 4,
+   "bit": 3,
+   "code": "G996",
+   "label": "Over the Air Provisioning",
+   "tooltip": "G996 This option requires the following: Q806 ASTRO IMBE Digital Operation Q947 APCO Packet Data Interface"
+  },
+  {
+   "nibble": 5,
+   "bit": 0,
+   "code": "H35",
+   "label": "Conventional Systems Operation",
+   "tooltip": "H35 This option is automatically included with the following: Q811 Digital MDC Conventional Package"
+  },
+  {
+   "nibble": 5,
+   "bit": 1,
+   "code": "H02",
+   "label": "Encrypted Tactical Inhibit",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 2,
+   "code": "H37",
+   "label": "SmartNet Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 3,
+   "code": "H38",
+   "label": "SmartZone Systems Operation",
+   "tooltip": "H38 This option is automatically included with the following: Q443 Astro 3600 Analog Operation Package Q574 Astro 9600 Operation Package Q575 Astro 3600 Digital Operation Package"
+  },
+  {
+   "nibble": 6,
+   "bit": 0,
+   "code": "G857",
+   "label": "FDNY Emergency Rx/Tx Tone Set",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 1,
+   "code": "Q369",
+   "label": "Inter System Roaming ISSI",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 2,
+   "code": "H04",
+   "label": "Conventional Tactical Rekey w/ Multikey",
+   "tooltip": "H04 This option requires the following: Q806 ASTRO IMBE Digital Operation Q947 APCO Packet Data Interface This option not compatible with Q498 Hardware Multikey Encryption w/ OTAR"
+  },
+  {
+   "nibble": 6,
+   "bit": 3,
+   "code": "H345",
+   "label": "ASTRO 25 Trunking Radio Authentication",
+   "tooltip": "H345 This option requires the following: G806 ASTRO IMBE Digital Operation G51 SmartZone Systems Operation G173 SmartZone Omnilink MultiZone Operation G361 ASTRO 25 9600 Baud Trunking"
+  },
+  {
+   "nibble": 7,
+   "bit": 2,
+   "code": "Q352",
+   "label": "User Definable Soft ID",
+   "tooltip": "Q352 This option is depreciated as of firmware R09"
+  },
+  {
+   "nibble": 8,
+   "bit": 0,
+   "code": "Q947",
+   "label": "APCO Packet Data Interface",
+   "tooltip": "Q947 This option requires Q806 ASTRO IMBE Digital Operation"
+  },
+  {
+   "nibble": 8,
+   "bit": 1,
+   "code": "Q241",
+   "label": "Analog Only Operation",
+   "tooltip": "Q241 This option is automatically included with the following: Q443 Astro 3600 Analog Operation Package"
+  },
+  {
+   "nibble": 9,
+   "bit": 0,
+   "code": "Q53",
+   "label": "FCC FPP And Radio Cloning",
+   "tooltip": ""
+  },
+  {
+   "nibble": 9,
+   "bit": 1,
+   "code": "Q387",
+   "label": "Conventional Voting Scan",
+   "tooltip": ""
+  },
+  {
+   "nibble": 9,
+   "bit": 2,
+   "code": "Q173",
+   "label": "SmartZone Omnilink MultiZone Operation",
+   "tooltip": "Q173 This option is automatically included with the following: Q443 Astro 3600 Analog Operation Package Q574 Astro 9600 Operation Package Q575 Astro 3600 Digital Operation Package This option requires H38 SmartZone Systems Operation"
+  }
+ ],
+ "Astro_XTS1500": [
+  {
+   "nibble": 0,
+   "bit": 0,
+   "code": "Q806",
+   "label": "ASTRO IMBE Digital Operation",
+   "tooltip": "Q806 This option is automatically included with the following: Q574 Astro 9600 Operation Package Q575 Astro 3600 Digital Operation Package Q811 Digital MDC Conventional Package"
+  },
+  {
+   "nibble": 0,
+   "bit": 2,
+   "code": "H14",
+   "label": "Enhanced Digital ID Display",
+   "tooltip": "H14 This option is automatically included with the following: Q574 Astro 9600 Operation Package Q575 Astro 3600 Digital Operation Package"
+  },
+  {
+   "nibble": 2,
+   "bit": 0,
+   "code": "H43",
+   "label": "Trunked Remote Monitor/Radio Trace",
+   "tooltip": ""
+  },
+  {
+   "nibble": 3,
+   "bit": 2,
+   "code": "Q507",
+   "label": "12.5 kHz FCC Mandate",
+   "tooltip": ""
+  },
+  {
+   "nibble": 4,
+   "bit": 3,
+   "code": "G996",
+   "label": "Over the Air Provisioning",
+   "tooltip": "G996 This option requires the following: Q806 ASTRO IMBE Digital Operation Q947 APCO Packet Data Interface"
+  },
+  {
+   "nibble": 5,
+   "bit": 0,
+   "code": "H35",
+   "label": "Conventional Systems Operation",
+   "tooltip": "H35 This option is automatically included with the following: Q811 Digital MDC Conventional Package"
+  },
+  {
+   "nibble": 5,
+   "bit": 2,
+   "code": "H37",
+   "label": "SmartNet Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 3,
+   "code": "H38",
+   "label": "SmartZone Systems Operation",
+   "tooltip": "H38 This option is automatically included with the following: Q574 Astro 9600 Operation Package Q575 Astro 3600 Digital Operation Package"
+  },
+  {
+   "nibble": 6,
+   "bit": 0,
+   "code": "G857",
+   "label": "FDNY Emergency Rx/Tx Tone Set",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 1,
+   "code": "Q369",
+   "label": "Inter System Roaming ISSI",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 3,
+   "code": "H345",
+   "label": "ASTRO 25 Trunking Radio Authentication",
+   "tooltip": "H345 This option requires the following: G806 ASTRO IMBE Digital Operation G51 SmartZone Systems Operation G173 SmartZone Omnilink MultiZone Operation G361 ASTRO 25 9600 Baud Trunking"
+  },
+  {
+   "nibble": 8,
+   "bit": 0,
+   "code": "Q947",
+   "label": "APCO Packet Data Interface",
+   "tooltip": "Q947 This option requires Q806 ASTRO IMBE Digital Operation"
+  },
+  {
+   "nibble": 8,
+   "bit": 1,
+   "code": "Q241",
+   "label": "Analog Only Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 9,
+   "bit": 2,
+   "code": "Q173",
+   "label": "SmartZone Omnilink MultiZone Operation",
+   "tooltip": "Q173 This option is automatically included with the following: Q574 Astro 9600 Operation Package Q575 Astro 3600 Digital Operation Package This option requires H38 SmartZone Systems Operation"
+  }
+ ],
+ "Astro_MT1500": [
+  {
+   "nibble": 0,
+   "bit": 0,
+   "code": "Q806",
+   "label": "ASTRO IMBE Digital Operation",
+   "tooltip": "Q806 This option is automatically included with the following: Q574 Astro 9600 Operation Package Q811 Digital MDC Conventional Package"
+  },
+  {
+   "nibble": 2,
+   "bit": 0,
+   "code": "H43",
+   "label": "Trunked Remote Monitor/Radio Trace",
+   "tooltip": ""
+  },
+  {
+   "nibble": 3,
+   "bit": 2,
+   "code": "Q507",
+   "label": "12.5 kHz FCC Mandate",
+   "tooltip": ""
+  },
+  {
+   "nibble": 4,
+   "bit": 3,
+   "code": "G996",
+   "label": "Over the Air Provisioning",
+   "tooltip": "G996 This option requires the following: Q806 ASTRO IMBE Digital Operation Q947 APCO Packet Data Interface"
+  },
+  {
+   "nibble": 5,
+   "bit": 0,
+   "code": "H35",
+   "label": "Conventional Systems Operation",
+   "tooltip": "H35 This option is automatically included with the following: Q811 Digital MDC Conventional Package Q833 Analog MDC Conventional Package"
+  },
+  {
+   "nibble": 5,
+   "bit": 3,
+   "code": "H38",
+   "label": "SmartZone Systems Operation",
+   "tooltip": "H38 This option is automatically included with the following: Q443 Astro 3600 Analog Operation Package Q574 Astro 9600 Operation Package"
+  },
+  {
+   "nibble": 6,
+   "bit": 0,
+   "code": "G857",
+   "label": "FDNY Emergency Rx/Tx Tone Set",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 1,
+   "code": "Q369",
+   "label": "Inter System Roaming ISSI",
+   "tooltip": ""
+  },
+  {
+   "nibble": 8,
+   "bit": 0,
+   "code": "Q947",
+   "label": "APCO Packet Data Interface",
+   "tooltip": "Q947 This option requires Q806 ASTRO IMBE Digital Operation"
+  },
+  {
+   "nibble": 8,
+   "bit": 1,
+   "code": "Q241",
+   "label": "Analog Only Operation",
+   "tooltip": "Q241 This option is automatically included with the following: Q443 Astro 3600 Analog Operation Package Q833 Analog MDC Conventional Package"
+  },
+  {
+   "nibble": 9,
+   "bit": 2,
+   "code": "Q173",
+   "label": "SmartZone Omnilink MultiZone Operation",
+   "tooltip": "Q173 This option is automatically included with the following: Q443 Astro 3600 Analog Operation Package Q574 Astro 9600 Operation Package This option requires H38 SmartZone Systems Operation"
+  }
+ ],
+ "Astro_PR1500": [
+  {
+   "nibble": 3,
+   "bit": 2,
+   "code": "Q507",
+   "label": "12.5 kHz FCC Mandate",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 0,
+   "code": "H35",
+   "label": "Conventional Systems Operation",
+   "tooltip": "H35 This option is automatically included with the following: Q833 Analog MDC Conventional Package"
+  },
+  {
+   "nibble": 6,
+   "bit": 1,
+   "code": "Q369",
+   "label": "Inter System Roaming ISSI",
+   "tooltip": ""
+  },
+  {
+   "nibble": 8,
+   "bit": 1,
+   "code": "Q241",
+   "label": "Analog Only Operation",
+   "tooltip": "Q241 This option is automatically included with the following: Q833 Analog MDC Conventional Package"
+  }
+ ],
+ "Astro_SSE5000": [
+  {
+   "nibble": 0,
+   "bit": 0,
+   "code": "Q806",
+   "label": "ASTRO IMBE Digital Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 0,
+   "bit": 2,
+   "code": "H14",
+   "label": "Enhanced Digital ID Display",
+   "tooltip": ""
+  },
+  {
+   "nibble": 1,
+   "bit": 2,
+   "code": "H869",
+   "label": "Hardware Multikey Encryption",
+   "tooltip": ""
+  },
+  {
+   "nibble": 1,
+   "bit": 3,
+   "code": "Q498",
+   "label": "Hardware Multikey Encryption w/ OTAR",
+   "tooltip": "Q498 This option requires the following: Q806 ASTRO IMBE Digital Operation Q947 APCO Packet Data Interface This option automatically includes H04 Conventional Tactical Rekey w/ Multikey"
+  },
+  {
+   "nibble": 2,
+   "bit": 0,
+   "code": "H43",
+   "label": "Trunked Remote Monitor/Radio Trace",
+   "tooltip": ""
+  },
+  {
+   "nibble": 2,
+   "bit": 3,
+   "code": "H46",
+   "label": "Trunked One Touch Status Message",
+   "tooltip": ""
+  },
+  {
+   "nibble": 3,
+   "bit": 2,
+   "code": "Q507",
+   "label": "12.5 kHz FCC Mandate",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 0,
+   "code": "H35",
+   "label": "Conventional Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 2,
+   "code": "H37",
+   "label": "SmartNet Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 3,
+   "code": "H38",
+   "label": "SmartZone Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 0,
+   "code": "G857",
+   "label": "FDNY Emergency Rx/Tx Tone Set",
+   "tooltip": ""
+  },
+  {
+   "nibble": 7,
+   "bit": 2,
+   "code": "Q352",
+   "label": "User Definable Soft ID",
+   "tooltip": ""
+  },
+  {
+   "nibble": 8,
+   "bit": 0,
+   "code": "Q947",
+   "label": "APCO Packet Data Interface",
+   "tooltip": "Q947 This option requires Q806 ASTRO IMBE Digital Operation"
+  },
+  {
+   "nibble": 8,
+   "bit": 1,
+   "code": "Q241",
+   "label": "Analog Only Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 9,
+   "bit": 2,
+   "code": "Q173",
+   "label": "SmartZone Omnilink MultiZone Operation",
+   "tooltip": "Q173 This option requires H38 SmartZone Systems Operation"
+  },
+  {
+   "nibble": 9,
+   "bit": 3,
+   "code": "Q182",
+   "label": "Enhanced Radio Control Protocol",
+   "tooltip": ""
+  }
+ ],
+ "Astro_XTL5000": [
+  {
+   "nibble": 0,
+   "bit": 0,
+   "code": "G806",
+   "label": "ASTRO IMBE Digital Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 0,
+   "bit": 2,
+   "code": "G114",
+   "label": "Enhanced Digital ID Display",
+   "tooltip": ""
+  },
+  {
+   "nibble": 1,
+   "bit": 2,
+   "code": "W969",
+   "label": "Hardware Multikey Encryption",
+   "tooltip": ""
+  },
+  {
+   "nibble": 1,
+   "bit": 3,
+   "code": "G298",
+   "label": "Hardware Multikey Encryption w/ OTAR",
+   "tooltip": "G298 This option requires the following: G806 ASTRO IMBE Digital Operation W947 APCO Packet Data Interface This option automatically includes H04 Conventional Tactical Rekey w/ Multikey"
+  },
+  {
+   "nibble": 2,
+   "bit": 0,
+   "code": "G170",
+   "label": "Trunked Remote Monitor/Radio Trace",
+   "tooltip": ""
+  },
+  {
+   "nibble": 2,
+   "bit": 2,
+   "code": "G474",
+   "label": "Multi Radio Software",
+   "tooltip": ""
+  },
+  {
+   "nibble": 2,
+   "bit": 3,
+   "code": "G683",
+   "label": "Trunked One Touch Status Message",
+   "tooltip": ""
+  },
+  {
+   "nibble": 3,
+   "bit": 1,
+   "code": "W12",
+   "label": "Preamp",
+   "tooltip": ""
+  },
+  {
+   "nibble": 3,
+   "bit": 2,
+   "code": "G507",
+   "label": "12.5 kHz FCC Mandate",
+   "tooltip": ""
+  },
+  {
+   "nibble": 4,
+   "bit": 1,
+   "code": "G319",
+   "label": "Enable RF Modem",
+   "tooltip": ""
+  },
+  {
+   "nibble": 4,
+   "bit": 3,
+   "code": "G996",
+   "label": "Over the Air Provisioning",
+   "tooltip": "G996 This option requires the following: G806 ASTRO IMBE Digital Operation W947 APCO Packet Data Interface"
+  },
+  {
+   "nibble": 5,
+   "bit": 0,
+   "code": "G48",
+   "label": "Conventional Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 2,
+   "code": "G50",
+   "label": "SmartNet Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 3,
+   "code": "G51",
+   "label": "SmartZone Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 0,
+   "code": "G857",
+   "label": "FDNY Emergency Rx/Tx Tone Set",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 1,
+   "code": "G369",
+   "label": "Inter System Roaming ISSI",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 2,
+   "code": "H04",
+   "label": "Conventional Tactical Rekey w/ Multikey",
+   "tooltip": "H04 This option is automatically included with G298 Hardware Multikey Encryption w/ OTAR This option requires the following: G806 ASTRO IMBE Digital Operation W947 APCO Packet Data Interface This option not compatible with G298 Hardware Multikey Encryption w/ OTAR"
+  },
+  {
+   "nibble": 6,
+   "bit": 3,
+   "code": "W391",
+   "label": "ASTRO 25 Trunking Radio Authentication",
+   "tooltip": "W391 This option requires the following: G806 ASTRO IMBE Digital Operation G51 SmartZone Systems Operation G173 SmartZone Omnilink MultiZone Operation G361 ASTRO 25 9600 Baud Trunking"
+  },
+  {
+   "nibble": 7,
+   "bit": 2,
+   "code": "G352",
+   "label": "User Definable Soft ID",
+   "tooltip": "G352 This option is depreciated as of firmware R09"
+  },
+  {
+   "nibble": 8,
+   "bit": 0,
+   "code": "W947",
+   "label": "APCO Packet Data Interface",
+   "tooltip": "W947 This option requires G806 ASTRO IMBE Digital Operation"
+  },
+  {
+   "nibble": 8,
+   "bit": 1,
+   "code": "G241",
+   "label": "Analog Only Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 9,
+   "bit": 1,
+   "code": "G387",
+   "label": "Conventional Voting Scan",
+   "tooltip": ""
+  },
+  {
+   "nibble": 9,
+   "bit": 2,
+   "code": "G173",
+   "label": "SmartZone Omnilink MultiZone Operation",
+   "tooltip": "G173 This option requires G51 SmartZone Systems Operation"
+  },
+  {
+   "nibble": 9,
+   "bit": 3,
+   "code": "G182",
+   "label": "Radio Control Protocol",
+   "tooltip": ""
+  }
+ ],
+ "Astro_XTL2500": [
+  {
+   "nibble": 0,
+   "bit": 0,
+   "code": "G806",
+   "label": "ASTRO IMBE Digital Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 0,
+   "bit": 2,
+   "code": "G114",
+   "label": "Enhanced Digital ID Display",
+   "tooltip": ""
+  },
+  {
+   "nibble": 1,
+   "bit": 2,
+   "code": "W969",
+   "label": "Hardware Multikey Encryption",
+   "tooltip": ""
+  },
+  {
+   "nibble": 1,
+   "bit": 3,
+   "code": "G298",
+   "label": "Hardware Multikey Encryption w/ OTAR",
+   "tooltip": "G298 This option requires the following: G806 ASTRO IMBE Digital Operation W947 APCO Packet Data Interface This option automatically includes H04 Conventional Tactical Rekey w/ Multikey"
+  },
+  {
+   "nibble": 2,
+   "bit": 0,
+   "code": "G170",
+   "label": "Trunked Remote Monitor/Radio Trace",
+   "tooltip": ""
+  },
+  {
+   "nibble": 2,
+   "bit": 3,
+   "code": "G683",
+   "label": "Trunked One Touch Status Message",
+   "tooltip": ""
+  },
+  {
+   "nibble": 3,
+   "bit": 1,
+   "code": "W12",
+   "label": "Preamp",
+   "tooltip": ""
+  },
+  {
+   "nibble": 3,
+   "bit": 2,
+   "code": "G507",
+   "label": "12.5 kHz FCC Mandate",
+   "tooltip": ""
+  },
+  {
+   "nibble": 4,
+   "bit": 1,
+   "code": "G319",
+   "label": "Enable RF Modem",
+   "tooltip": ""
+  },
+  {
+   "nibble": 4,
+   "bit": 3,
+   "code": "G996",
+   "label": "Over the Air Provisioning",
+   "tooltip": "G996 This option requires the following: G806 ASTRO IMBE Digital Operation W947 APCO Packet Data Interface"
+  },
+  {
+   "nibble": 5,
+   "bit": 0,
+   "code": "G48",
+   "label": "Conventional Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 2,
+   "code": "G50",
+   "label": "SmartNet Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 3,
+   "code": "G51",
+   "label": "SmartZone Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 0,
+   "code": "G857",
+   "label": "FDNY Emergency Rx/Tx Tone Set",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 1,
+   "code": "G369",
+   "label": "Inter System Roaming ISSI",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 2,
+   "code": "H04",
+   "label": "Conventional Tactical Rekey w/ Multikey",
+   "tooltip": "H04 This option requires the following: G806 ASTRO IMBE Digital Operation W947 APCO Packet Data Interface This option not compatible with G298 Hardware Multikey Encryption w/ OTAR"
+  },
+  {
+   "nibble": 6,
+   "bit": 3,
+   "code": "W391",
+   "label": "ASTRO 25 Trunking Radio Authentication",
+   "tooltip": "W391 This option requires the following: G806 ASTRO IMBE Digital Operation G51 SmartZone Systems Operation G173 SmartZone Omnilink MultiZone Operation G361 ASTRO 25 9600 Baud Trunking"
+  },
+  {
+   "nibble": 8,
+   "bit": 0,
+   "code": "W947",
+   "label": "APCO Packet Data Interface",
+   "tooltip": "W947 This option requires G806 ASTRO IMBE Digital Operation"
+  },
+  {
+   "nibble": 8,
+   "bit": 1,
+   "code": "G241",
+   "label": "Analog Only Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 9,
+   "bit": 1,
+   "code": "G387",
+   "label": "Conventional Voting Scan",
+   "tooltip": ""
+  },
+  {
+   "nibble": 9,
+   "bit": 2,
+   "code": "G173",
+   "label": "SmartZone Omnilink MultiZone Operation",
+   "tooltip": "G173 This option requires G51 SmartZone Systems Operation"
+  },
+  {
+   "nibble": 9,
+   "bit": 3,
+   "code": "G182",
+   "label": "Radio Control Protocol",
+   "tooltip": ""
+  }
+ ],
+ "Astro_XTL1500": [
+  {
+   "nibble": 0,
+   "bit": 0,
+   "code": "G806",
+   "label": "ASTRO IMBE Digital Operation",
+   "tooltip": "G806 This option is automatically included with the following: G788 Astro 9600 Operation Package G789 Astro 3600 Digital Operation Package G790 Digital MDC Conventional Package"
+  },
+  {
+   "nibble": 0,
+   "bit": 2,
+   "code": "G114",
+   "label": "Enhanced Digital ID Display",
+   "tooltip": "G114 This option is automatically included with the following: G788 Astro 9600 Operation Package G789 Astro 3600 Digital Operation Package G790 Digital MDC Conventional Package"
+  },
+  {
+   "nibble": 2,
+   "bit": 0,
+   "code": "G170",
+   "label": "Trunked Remote Monitor/Radio Trace",
+   "tooltip": ""
+  },
+  {
+   "nibble": 2,
+   "bit": 3,
+   "code": "G683",
+   "label": "Trunked One Touch Status Message",
+   "tooltip": "G683 This option is automatically included with the following: G788 Astro 9600 Operation Package G789 Astro 3600 Digital Operation Package G790 Digital MDC Conventional Package G809 Astro 3600 Analog Operation Package"
+  },
+  {
+   "nibble": 3,
+   "bit": 2,
+   "code": "G507",
+   "label": "12.5 kHz FCC Mandate",
+   "tooltip": ""
+  },
+  {
+   "nibble": 4,
+   "bit": 2,
+   "code": "G791",
+   "label": "PM1500/XTL1500 Enhanced Software Capabilities",
+   "tooltip": ""
+  },
+  {
+   "nibble": 4,
+   "bit": 3,
+   "code": "G996",
+   "label": "Over the Air Provisioning",
+   "tooltip": "G996 This option requires the following: G806 ASTRO IMBE Digital Operation W947 APCO Packet Data Interface"
+  },
+  {
+   "nibble": 5,
+   "bit": 0,
+   "code": "G48",
+   "label": "Conventional Systems Operation",
+   "tooltip": "G48 This option is automatically included with the following: G790 Digital MDC Conventional Package"
+  },
+  {
+   "nibble": 5,
+   "bit": 2,
+   "code": "G50",
+   "label": "SmartNet Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 3,
+   "code": "G51",
+   "label": "SmartZone Systems Operation",
+   "tooltip": "G51 This option is automatically included with the following: G788 Astro 9600 Operation Package G789 Astro 3600 Digital Operation Package G809 Astro 3600 Analog Operation Package"
+  },
+  {
+   "nibble": 6,
+   "bit": 1,
+   "code": "G369",
+   "label": "Inter System Roaming ISSI",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 3,
+   "code": "W391",
+   "label": "ASTRO 25 Trunking Radio Authentication",
+   "tooltip": "W391 This option requires the following: G806 ASTRO IMBE Digital Operation G51 SmartZone Systems Operation G173 SmartZone Omnilink MultiZone Operation G361 ASTRO 25 9600 Baud Trunking"
+  },
+  {
+   "nibble": 8,
+   "bit": 0,
+   "code": "W947",
+   "label": "APCO Packet Data Interface",
+   "tooltip": "W947 This option requires G806 ASTRO IMBE Digital Operation"
+  },
+  {
+   "nibble": 8,
+   "bit": 1,
+   "code": "G241",
+   "label": "Analog Only Operation",
+   "tooltip": "G241 This option is automatically included with the following: G809 Astro 3600 Analog Operation Package"
+  },
+  {
+   "nibble": 9,
+   "bit": 2,
+   "code": "G173",
+   "label": "SmartZone Omnilink MultiZone Operation",
+   "tooltip": "G173 This option is automatically included with the following: G788 Astro 9600 Operation Package G789 Astro 3600 Digital Operation Package G809 Astro 3600 Analog Operation Package This option requires G51 SmartZone Systems Operation"
+  }
+ ],
+ "Astro_PM1500": [
+  {
+   "nibble": 0,
+   "bit": 0,
+   "code": "G806",
+   "label": "ASTRO IMBE Digital Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 0,
+   "bit": 2,
+   "code": "G114",
+   "label": "Enhanced Digital ID Display",
+   "tooltip": ""
+  },
+  {
+   "nibble": 3,
+   "bit": 2,
+   "code": "G507",
+   "label": "12.5 kHz FCC Mandate",
+   "tooltip": ""
+  },
+  {
+   "nibble": 4,
+   "bit": 2,
+   "code": "G791",
+   "label": "PM1500/XTL1500 Enhanced Software Capabilities",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 0,
+   "code": "G48",
+   "label": "Conventional Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 1,
+   "code": "G369",
+   "label": "Inter System Roaming ISSI",
+   "tooltip": ""
+  },
+  {
+   "nibble": 8,
+   "bit": 1,
+   "code": "G241",
+   "label": "Analog Only Operation",
+   "tooltip": ""
+  }
+ ],
+ "Astro_SPECTRA_PLUS": [
+  {
+   "nibble": 0,
+   "bit": 0,
+   "code": "G806",
+   "label": "ASTRO IMBE Digital Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 0,
+   "bit": 2,
+   "code": "G114",
+   "label": "Enhanced Digital ID Display",
+   "tooltip": ""
+  },
+  {
+   "nibble": 1,
+   "bit": 2,
+   "code": "W969",
+   "label": "Hardware Multikey Encryption",
+   "tooltip": ""
+  },
+  {
+   "nibble": 1,
+   "bit": 3,
+   "code": "G298",
+   "label": "Hardware Multikey Encryption w/ OTAR",
+   "tooltip": "G298 This option requires the following: G806 ASTRO IMBE Digital Operation W947 APCO Packet Data Interface This option automatically includes H04 Conventional Tactical Rekey w/ Multikey"
+  },
+  {
+   "nibble": 2,
+   "bit": 0,
+   "code": "G170",
+   "label": "Trunked Remote Monitor/Radio Trace",
+   "tooltip": ""
+  },
+  {
+   "nibble": 2,
+   "bit": 3,
+   "code": "G683",
+   "label": "Trunked One Touch Status Message",
+   "tooltip": ""
+  },
+  {
+   "nibble": 3,
+   "bit": 2,
+   "code": "G507",
+   "label": "12.5 kHz FCC Mandate",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 0,
+   "code": "G48",
+   "label": "Conventional Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 2,
+   "code": "G50",
+   "label": "SmartNet Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 3,
+   "code": "G51",
+   "label": "SmartZone Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 0,
+   "code": "G857",
+   "label": "FDNY Emergency Rx/Tx Tone Set",
+   "tooltip": ""
+  },
+  {
+   "nibble": 7,
+   "bit": 2,
+   "code": "G352",
+   "label": "User Definable Soft ID",
+   "tooltip": ""
+  },
+  {
+   "nibble": 8,
+   "bit": 0,
+   "code": "W947",
+   "label": "APCO Packet Data Interface",
+   "tooltip": "W947 This option requires G806 ASTRO IMBE Digital Operation"
+  },
+  {
+   "nibble": 8,
+   "bit": 1,
+   "code": "G241",
+   "label": "Analog Only Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 9,
+   "bit": 1,
+   "code": "G387",
+   "label": "Conventional Voting Scan",
+   "tooltip": ""
+  },
+  {
+   "nibble": 9,
+   "bit": 2,
+   "code": "G173",
+   "label": "SmartZone Omnilink MultiZone Operation",
+   "tooltip": "G173 This option requires G51 SmartZone Systems Operation"
+  },
+  {
+   "nibble": 9,
+   "bit": 3,
+   "code": "G182",
+   "label": "Radio Control Protocol",
+   "tooltip": ""
+  }
+ ],
+ "Astro_XTS3000": [
+  {
+   "nibble": 0,
+   "bit": 0,
+   "code": "Q806",
+   "label": "ASTRO IMBE Digital Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 0,
+   "bit": 2,
+   "code": "H14",
+   "label": "Enhanced Digital ID Display",
+   "tooltip": ""
+  },
+  {
+   "nibble": 0,
+   "bit": 3,
+   "code": "H15",
+   "label": "ASTRO Data",
+   "tooltip": ""
+  },
+  {
+   "nibble": 1,
+   "bit": 0,
+   "code": "H101",
+   "label": "Repeater Access",
+   "tooltip": ""
+  },
+  {
+   "nibble": 1,
+   "bit": 2,
+   "code": "H869",
+   "label": "Hardware Multikey Encryption",
+   "tooltip": ""
+  },
+  {
+   "nibble": 1,
+   "bit": 3,
+   "code": "Q498",
+   "label": "Hardware Multikey Encryption w/ OTAR",
+   "tooltip": "Q498 This option is also known as H868 This option requires the following: Q806 ASTRO IMBE Digital Operation Q947 APCO Packet Data Interface This option automatically includes H04 Conventional Tactical Rekey w/ Multikey"
+  },
+  {
+   "nibble": 2,
+   "bit": 0,
+   "code": "H43",
+   "label": "Trunked Remote Monitor/Radio Trace",
+   "tooltip": ""
+  },
+  {
+   "nibble": 2,
+   "bit": 3,
+   "code": "H46",
+   "label": "Trunked One Touch Status Message",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 0,
+   "code": "H35",
+   "label": "Conventional Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 2,
+   "code": "H37",
+   "label": "SmartNet Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 3,
+   "code": "H38",
+   "label": "SmartZone Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 1,
+   "code": "H915",
+   "label": "International Radio",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 2,
+   "code": "H07",
+   "label": "Software Multikey Encryption",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 3,
+   "code": "H29",
+   "label": "Software Singlekey Encryption",
+   "tooltip": ""
+  },
+  {
+   "nibble": 7,
+   "bit": 0,
+   "code": "Q354",
+   "label": "OTACS Over the Air Channel Steering",
+   "tooltip": ""
+  },
+  {
+   "nibble": 7,
+   "bit": 1,
+   "code": "Q353",
+   "label": "OTACR Over the Air Channel Reassignment",
+   "tooltip": ""
+  },
+  {
+   "nibble": 7,
+   "bit": 2,
+   "code": "Q352",
+   "label": "User Definable Soft ID",
+   "tooltip": ""
+  },
+  {
+   "nibble": 7,
+   "bit": 3,
+   "code": "Q351",
+   "label": "MODAT",
+   "tooltip": ""
+  },
+  {
+   "nibble": 8,
+   "bit": 0,
+   "code": "Q947",
+   "label": "APCO Packet Data Interface",
+   "tooltip": "Q947 This option requires Q806 ASTRO IMBE Digital Operation"
+  },
+  {
+   "nibble": 8,
+   "bit": 1,
+   "code": "Q241",
+   "label": "Analog Only Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 9,
+   "bit": 1,
+   "code": "Q387",
+   "label": "Conventional Voting Scan",
+   "tooltip": ""
+  },
+  {
+   "nibble": 9,
+   "bit": 2,
+   "code": "Q173",
+   "label": "SmartZone Omnilink MultiZone Operation",
+   "tooltip": "Q173 This option requires H38 SmartZone Systems Operation"
+  },
+  {
+   "nibble": 9,
+   "bit": 3,
+   "code": "Q182",
+   "label": "Enhanced Radio Control Protocol",
+   "tooltip": ""
+  }
+ ],
+ "Astro_Saber": [
+  {
+   "nibble": 0,
+   "bit": 0,
+   "code": "Q806",
+   "label": "ASTRO IMBE Digital Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 0,
+   "bit": 2,
+   "code": "H14",
+   "label": "Enhanced Digital ID Display",
+   "tooltip": ""
+  },
+  {
+   "nibble": 0,
+   "bit": 3,
+   "code": "H15",
+   "label": "ASTRO Data",
+   "tooltip": ""
+  },
+  {
+   "nibble": 1,
+   "bit": 0,
+   "code": "H101",
+   "label": "Repeater Access",
+   "tooltip": ""
+  },
+  {
+   "nibble": 1,
+   "bit": 2,
+   "code": "H869",
+   "label": "Hardware Multikey Encryption",
+   "tooltip": ""
+  },
+  {
+   "nibble": 1,
+   "bit": 3,
+   "code": "Q498",
+   "label": "Hardware Multikey Encryption w/ OTAR",
+   "tooltip": "Q498 This option is also known as H868 This option requires the following: Q806 ASTRO IMBE Digital Operation Q947 APCO Packet Data Interface This option automatically includes H04 Conventional Tactical Rekey w/ Multikey"
+  },
+  {
+   "nibble": 2,
+   "bit": 0,
+   "code": "H43",
+   "label": "Trunked Remote Monitor/Radio Trace",
+   "tooltip": ""
+  },
+  {
+   "nibble": 2,
+   "bit": 3,
+   "code": "H46",
+   "label": "Trunked One Touch Status Message",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 0,
+   "code": "H35",
+   "label": "Conventional Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 2,
+   "code": "H37",
+   "label": "SmartNet Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 5,
+   "bit": 3,
+   "code": "H38",
+   "label": "SmartZone Systems Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 1,
+   "code": "H915",
+   "label": "International Radio",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 2,
+   "code": "H07",
+   "label": "Software Multikey Encryption",
+   "tooltip": ""
+  },
+  {
+   "nibble": 6,
+   "bit": 3,
+   "code": "H29",
+   "label": "Software Singlekey Encryption",
+   "tooltip": ""
+  },
+  {
+   "nibble": 7,
+   "bit": 0,
+   "code": "Q354",
+   "label": "OTACS Over the Air Channel Steering",
+   "tooltip": ""
+  },
+  {
+   "nibble": 7,
+   "bit": 1,
+   "code": "Q353",
+   "label": "OTACR Over the Air Channel Reassignment",
+   "tooltip": ""
+  },
+  {
+   "nibble": 7,
+   "bit": 2,
+   "code": "Q352",
+   "label": "User Definable Soft ID",
+   "tooltip": ""
+  },
+  {
+   "nibble": 7,
+   "bit": 3,
+   "code": "Q351",
+   "label": "MODAT",
+   "tooltip": ""
+  },
+  {
+   "nibble": 8,
+   "bit": 0,
+   "code": "Q947",
+   "label": "APCO Packet Data Interface",
+   "tooltip": "Q947 This option requires Q806 ASTRO IMBE Digital Operation"
+  },
+  {
+   "nibble": 8,
+   "bit": 1,
+   "code": "Q241",
+   "label": "Analog Only Operation",
+   "tooltip": ""
+  },
+  {
+   "nibble": 9,
+   "bit": 1,
+   "code": "Q387",
+   "label": "Conventional Voting Scan",
+   "tooltip": ""
+  },
+  {
+   "nibble": 9,
+   "bit": 2,
+   "code": "Q173",
+   "label": "SmartZone Omnilink MultiZone Operation",
+   "tooltip": "Q173 This option requires H38 SmartZone Systems Operation"
+  },
+  {
+   "nibble": 9,
+   "bit": 3,
+   "code": "Q182",
+   "label": "Enhanced Radio Control Protocol",
+   "tooltip": ""
+  }
+ ]
+}

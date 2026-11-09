@@ -1,0 +1,25 @@
+# build output
+/build/
+CMakeFiles/
+*.obj
+*.exe
+*.lib
+*.exp
+*.pdb
+*.ilk
+*.idb
+*~
+# python
+__pycache__/
+*.pyc
+# local/runtime
+imgui.ini
+*.spm
+# large wire captures (analysis artifacts, radio-specific)
+/COM20*.txt
+/depot write test radio.txt
+# generated proxy build
+/tools/ngproxy/*.dll
+/tools/ngproxy/*.lib
+/tools/ngproxy/*.exp
+/tools/ngproxy/*.obj

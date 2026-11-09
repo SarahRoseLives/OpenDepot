@@ -1,0 +1,5 @@
+LIBRARY authAES
+EXPORTS
+  _encrypt_function@12=_encrypt_proxy@12
+  _decrypt_function@12=_decrypt_proxy@12
+  _shuming_encrypt_validation@0=_shuming_proxy@0
