@@ -772,6 +772,38 @@ static void PollPasscodeJob() {
     g_app.status = g_app.passcodeResult;
 }
 
+static std::atomic<bool> g_bkDone{false};
+static bool g_bkOk = false;
+static std::string g_bkResult;
+static std::thread g_bkThread;
+
+static void StartBackupJob() {
+    if (g_app.radioBusy) return;
+    g_app.radioBusy = true;
+    g_app.radioStatus = "Backing up radio...";
+    g_app.status = g_app.radioStatus;
+    g_bkDone = false; g_bkOk = false; g_bkResult.clear();
+    const std::string port(g_app.radioPort);
+    const std::wstring outdir = BackupDir() + L"\\backup-" + Stamp();
+    g_bkThread = std::thread([port, outdir]() {
+        std::string e;
+        std::wstring args = L"--backup-radio " + std::wstring(port.begin(), port.end()) +
+                            L" \"" + outdir + L"\"";
+        g_bkOk = RunCli(args, e);
+        g_bkResult = g_bkOk ? std::string() : e;
+        g_bkDone = true;
+    });
+}
+
+static void PollBackupJob() {
+    if (!g_bkDone.load()) return;
+    g_bkDone = false;
+    if (g_bkThread.joinable()) g_bkThread.join();
+    g_app.radioBusy = false;
+    g_app.status = g_bkOk ? "Radio backup complete (build\\radio-backups)."
+                          : ("Backup failed: " + g_bkResult);
+}
+
 static void SetPasscodeOpen(const std::string& pw) {
     if (!g_app.loaded) { g_app.status = "Open a codeplug first."; return; }
     if (!SetCodeplugPassword(g_app.cp, true, pw)) {
@@ -846,6 +878,7 @@ static void DrawRadioConfirm() {
 static void DrawUI() {
     PollRadioJob();
     PollPasscodeJob();
+    PollBackupJob();
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
     ImGui::Begin("OpenDepot", nullptr,
@@ -902,6 +935,9 @@ static void DrawUI() {
                 g_app.showPasscodeSet = true;
             if (ImGui::MenuItem("Clear Passcode", nullptr, false, g_app.loaded && !g_app.radioBusy))
                 ClearPasscodeOpen();
+            ImGui::Separator();
+            if (ImGui::MenuItem("Backup (memory/calibration)...", nullptr, false, canRead))
+                StartBackupJob();
             if (g_app.radioBusy) {
                 if (ImGui::MenuItem("Cancel")) CancelRadio();
                 ImGui::TextUnformatted(g_app.radioStatus.c_str());

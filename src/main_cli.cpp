@@ -2,6 +2,7 @@
 
 #include <windows.h>
 #include <objbase.h>
+#include <wincrypt.h>
 
 #include <cstdio>
 #include <cwchar>
@@ -162,6 +163,32 @@ static bool ReadWholeFile(const std::wstring& path, std::vector<uint8_t>& out) {
     fseek(f, 0, SEEK_SET);
     if (n > 0) { out.resize((size_t)n); fread(out.data(), 1, (size_t)n, f); }
     fclose(f);
+    return true;
+}
+
+static bool Sha256File(const std::wstring& path, std::string& hex) {
+    std::vector<uint8_t> data;
+    if (!ReadWholeFile(path, data)) return false;
+    HCRYPTPROV prov = 0;
+    HCRYPTHASH h = 0;
+    if (!CryptAcquireContextW(&prov, nullptr, nullptr, PROV_RSA_AES, CRYPT_VERIFYCONTEXT))
+        return false;
+    if (!CryptCreateHash(prov, CALG_SHA_256, 0, 0, &h)) {
+        CryptReleaseContext(prov, 0);
+        return false;
+    }
+    CryptHashData(h, data.empty() ? nullptr : data.data(), (DWORD)data.size(), 0);
+    BYTE buf[32];
+    DWORD n = 32;
+    CryptGetHashParam(h, HP_HASHVAL, buf, &n, 0);
+    CryptDestroyHash(h);
+    CryptReleaseContext(prov, 0);
+    hex.clear();
+    char b[3];
+    for (DWORD i = 0; i < n; ++i) {
+        sprintf(b, "%02x", buf[i]);
+        hex += b;
+    }
     return true;
 }
 
@@ -376,6 +403,7 @@ int wmain(int argc, wchar_t** argv) {
         printf("  opendepot-cli --set-password <in.cpg> <out.cpg> <password>\n");
         printf("  opendepot-cli --clear-password <in.cpg> <out.cpg>\n");
         printf("  opendepot-cli --radio-password <port>\n");
+        printf("  opendepot-cli --backup-radio <port> <outdir>\n");
         printf("  opendepot-cli --unlock <port>\n");
         printf("  opendepot-cli --security <port>\n");
         printf("  opendepot-cli --flashcode <in.cpg> [radio|platform]\n");
@@ -776,6 +804,73 @@ int wmain(int argc, wchar_t** argv) {
         printf("passcode: enabled=%d password='%s'\n", pw.enabled ? 1 : 0, pw.password.c_str());
         DeleteFileW(reqsPath.c_str());
         DeleteFileW(rec.c_str());
+        return 0;
+    }
+    if (cmd == L"--backup-radio" && argc >= 4) {
+        const std::wstring port = argv[2];
+        const std::wstring outdir = argv[3];
+        CreateDirectoryW(outdir.c_str(), nullptr);
+        // 1) native codeplug read
+        Codeplug tpl;
+        std::string berr;
+        std::string first = BuiltinFirstModel();
+        if (!first.empty()) BuiltinTemplate(first, tpl, berr);
+        std::vector<ReadRequest> reqs;
+        BuiltinReadRequests(reqs);
+        std::wstring reqsPath = TempPath(L"bk.reqs");
+        FILE* rf = _wfopen(reqsPath.c_str(), L"wb");
+        if (!rf) { printf("reqs write failed\n"); return 2; }
+        for (auto& r : reqs) {
+            uint8_t b[8] = {uint8_t(r.part >> 8), uint8_t(r.part), uint8_t(r.tag >> 8),
+                            uint8_t(r.tag),      uint8_t(r.inst >> 8), uint8_t(r.inst),
+                            uint8_t(r.len >> 8), uint8_t(r.len)};
+            fwrite(b, 1, 8, rf);
+        }
+        fclose(rf);
+        std::wstring rec = TempPath(L"bk.rec");
+        std::string err;
+        if (!RunNativeReader(port, rec, reqsPath, err)) {
+            printf("BACKUP READ FAILED: %s\n", err.c_str());
+            DeleteFileW(reqsPath.c_str());
+            return 2;
+        }
+        std::vector<uint8_t> buf;
+        if (!ReadWholeFile(rec, buf)) { printf("read output missing\n"); return 2; }
+        Codeplug out;
+        if (!ApplyRecBuffer(buf, tpl, out, err)) { printf("READ PARSE FAILED: %s\n", err.c_str()); return 2; }
+        std::string s, m;
+        if (ReadIdentityFromCodeplug(out, s, m)) UpdateIdentity(out, s, m);
+        std::wstring cpg = outdir + L"\\codeplug.cpg";
+        if (!SaveCodeplug(cpg, out, err)) { printf("SAVE FAILED: %s\n", err.c_str()); return 2; }
+        DeleteFileW(reqsPath.c_str());
+        DeleteFileW(rec.c_str());
+        // 2) vendor helper: softpots, security attempt, info.txt (read-only)
+        if (!RunHelper(L"--backup " + port + L" \"" + outdir + L"\"", err, 300000))
+            printf("helper backup issue: %s\n", err.c_str());
+        // 3) manifest with SHA-256
+        std::wstring manifest = outdir + L"\\manifest.json";
+        FILE* mf = _wfopen(manifest.c_str(), L"wb");
+        if (mf) {
+            fprintf(mf, "{\n  \"tool\": \"OpenDepot\",\n  \"model\": \"%s\",\n  \"serial\": \"%s\",\n  \"artifacts\": [\n",
+                    out.header.model.c_str(), out.header.serial.c_str());
+            const wchar_t* names[] = {L"codeplug.cpg", L"softpots.bin", L"security.bin", L"info.txt"};
+            bool firstArt = true;
+            for (auto n : names) {
+                std::wstring p = outdir + L"\\" + n;
+                std::vector<uint8_t> d;
+                if (!ReadWholeFile(p, d)) continue;
+                std::string hx;
+                Sha256File(p, hx);
+                if (!firstArt) fprintf(mf, ",\n");
+                firstArt = false;
+                fprintf(mf, "    {\"path\": \"%ls\", \"bytes\": %zu, \"sha256\": \"%s\"}", n, d.size(),
+                        hx.c_str());
+            }
+            fprintf(mf, "\n  ]\n}\n");
+            fclose(mf);
+        }
+        printf("backup written to %ls (model %s serial %s)\n", outdir.c_str(),
+               out.header.model.c_str(), out.header.serial.c_str());
         return 0;
     }
     if (cmd == L"--unlock" && argc >= 3) {

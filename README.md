@@ -229,6 +229,24 @@ it. Whether a radio with a passcode set still allows this native read is
 untested; if it blocks the read, recovery needs a codeplug that was read while
 the radio was unlocked.
 
+## Memory / calibration backup (read-only)
+
+`opendepot-cli --backup-radio <port> <outdir>` (GUI: **Radio → Backup
+(memory/calibration)…**) creates a folder with:
+
+- `codeplug.cpg` — native, CRC-verified read of the codeplug.
+- `softpots.bin` — tuning softpot values, read via the vendor API (read-only).
+- `info.txt` — processor type, version attempt, ESN attempt, security-partition
+  attempt, and the softpot dump.
+- `security.bin` — security/calibration partition, when the API returns it.
+- `manifest.json` — SHA-256 and size of each artifact.
+
+It is read-only and never writes to the radio. Known limitations: outside the
+Depot the security-partition calls (`GetSecurityPartitionSize/Data`) currently
+fail with "Class not registered", and firmware/flash memory is not dumped yet
+(the address map and boot-mode access are still being worked out). The codeplug
+and softpot tuning values are captured.
+
 ## Radio transport (recovered)
 
 Programming is exposed by the radio as an AT modem, then PPP, then RCMP:

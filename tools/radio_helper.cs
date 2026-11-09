@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -105,6 +105,17 @@ class RadioHelper {
             return sb.ToString();
         }
         return o.GetType().Name + " " + o.ToString();
+    }
+    static byte[] ObjBytes(object o) {
+        if (o == null) return null;
+        if (o is byte[]) return (byte[])o;
+        if (o is Array) {
+            Array a = (Array)o;
+            byte[] b = new byte[a.Length];
+            for (int i = 0; i < a.Length; ++i) b[i] = Convert.ToByte(a.GetValue(i));
+            return b;
+        }
+        return null;
     }
     [STAThread] static int Main(string[] a) {
         if (a.Length < 2) { Console.Error.WriteLine("usage: radio_helper --read <port> <taglist> <out.rec> | --write <port> <in.rec>"); return 1; }
@@ -312,6 +323,60 @@ class RadioHelper {
                         try { object data; int hr = s.B.GetSecurityPartitionData(out data); string h = ""; if (data is byte[]) h = " hex=" + Hex((byte[])data); else if (data is Array) { var sb = new System.Text.StringBuilder(); foreach (object o in (Array)data) sb.Append(o is byte ? ((byte)o).ToString("x2") : o.ToString()); h = " hex=" + sb.ToString(); } Console.WriteLine("SecPartData hr=0x" + hr.ToString("X8") + " r=" + Fmt(data) + h); }
                         catch (Exception e) { Console.WriteLine("SecPartData EX " + e.Message); }
                     }
+                }
+                return 0;
+            } catch (Exception e) { Console.Error.WriteLine(mode + " error: " + e.GetType().Name + ": " + e.Message); return 3; }
+        }
+        if (mode == "--memprobe" || mode == "--backup") {
+            string outdir = (mode == "--backup" && a.Length > 2) ? a[2] : null;
+            var log = new System.Text.StringBuilder();
+            byte[] sec = null;
+            var sp = new System.Collections.Generic.List<byte>();
+            Action<string> Log = delegate(string t) { Console.WriteLine(t); log.AppendLine(t); };
+            try {
+                using (var s = new Session(port)) {
+                    try { int pt = 0, ei = 0; s.B.getProcessorType(ref pt, 0, ref ei); Log("ProcessorType=" + pt + " err=" + ei); }
+                    catch (Exception e) { Log("ProcessorType EX " + e.Message); }
+                    try { object v = null; int hr = s.B.GetVersionInfo(0, ref v); Log("VersionInfo hr=0x" + hr.ToString("X8") + " v=" + Fmt(v)); }
+                    catch (Exception e) { Log("VersionInfo EX " + e.Message); }
+                    try { object rc = null; s.B.ReadRadioConfiguration(ref rc, 0); Log("RadioConfiguration r=" + Fmt(rc)); }
+                    catch (Exception e) { Log("Config EX " + e.Message); }
+                    try { string esn = ""; s.B.ReadRadioElectricSerialNumber(ref esn); Log("ESN='" + esn + "'"); }
+                    catch (Exception e) { Log("ESN EX " + e.Message); }
+                    uint sz = 0, st = 0; int err = 0;
+                    try { s.B.GetSecurityPartitionSize(out sz, out st, out err); Log("SecPart size=" + sz + " start=0x" + st.ToString("X8") + " err=" + err); }
+                    catch (Exception e) { Log("SecPartSize EX " + e.Message); }
+                    try { object d; int hr = s.B.GetSecurityPartitionData(out d); sec = ObjBytes(d); Log("SecPartData hr=0x" + hr.ToString("X8") + " bytes=" + (sec == null ? 0 : sec.Length)); }
+                    catch (Exception e) { Log("SecPartData EX " + e.Message); }
+                    int groups = 0;
+                    for (int t = 0; t < 16; ++t) {
+                        for (int sb = 0; sb < 4; ++sb) {
+                            try {
+                                IntPtr buf = Marshal.AllocHGlobal(512);
+                                for (int i = 0; i < 512; ++i) Marshal.WriteByte(buf, i, 0);
+                                uint cnt = 0;
+                                s.B.ReadSoftPotValues(t, (short)sb, buf, ref cnt);
+                                if (cnt > 0 && cnt <= 512) {
+                                    ++groups;
+                                    byte[] b = new byte[cnt];
+                                    Marshal.Copy(buf, b, 0, (int)cnt);
+                                    sp.AddRange(b);
+                                    Log("SoftPot t=" + t + " st=" + sb + " cnt=" + cnt + " hex=" + Hex(b));
+                                }
+                                Marshal.FreeHGlobal(buf);
+                            } catch { }
+                        }
+                    }
+                    Log("SoftPot groups=" + groups + " bytes=" + sp.Count);
+                }
+                if (mode == "--backup") {
+                    Directory.CreateDirectory(outdir);
+                    if (sec != null) File.WriteAllBytes(Path.Combine(outdir, "security.bin"), sec);
+                    if (sp.Count > 0) File.WriteAllBytes(Path.Combine(outdir, "softpots.bin"), sp.ToArray());
+                    try {
+                        File.WriteAllText(Path.Combine(outdir, "info.txt"), log.ToString(),
+                                          new System.Text.UTF8Encoding(false, false));
+                    } catch { }
                 }
                 return 0;
             } catch (Exception e) { Console.Error.WriteLine(mode + " error: " + e.GetType().Name + ": " + e.Message); return 3; }
