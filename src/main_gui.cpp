@@ -359,8 +359,11 @@ static void DrawCreateDialog() {
     auto combo = [](const char* label, const std::vector<std::string>& items, int& sel) {
         ImGui::SetNextItemWidth(240);
         if (ImGui::BeginCombo(label, (sel >= 0 && sel < (int)items.size()) ? items[sel].c_str() : "")) {
-            for (int i = 0; i < (int)items.size(); ++i)
+            for (int i = 0; i < (int)items.size(); ++i) {
+                ImGui::PushID(i);
                 if (ImGui::Selectable(items[i].c_str(), sel == i)) sel = i;
+                ImGui::PopID();
+            }
             ImGui::EndCombo();
         }
     };
@@ -374,7 +377,11 @@ static void DrawCreateDialog() {
     ImGui::InputText("Model", g_app.createModel, sizeof(g_app.createModel));
     ImGui::SameLine();
     if (ImGui::BeginCombo("##knownmodels", "Known")) {
-        for (const auto& m : ModelCatalog())
+        std::set<std::string> seen;
+        int k = 0;
+        for (const auto& m : ModelCatalog()) {
+            if (!seen.insert(m.model).second) continue;  // dedupe: unique ImGui IDs
+            ImGui::PushID(k++);
             if (ImGui::Selectable(m.model)) {
                 snprintf(g_app.createModel, sizeof(g_app.createModel), "%s", m.model);
                 for (int i = 0; i < (int)BandOptions().size(); ++i)
@@ -384,6 +391,8 @@ static void DrawCreateDialog() {
                 for (int i = 0; i < (int)TypeOptions().size(); ++i)
                     if (TypeOptions()[i] == m.type) g_app.createType = i;
             }
+            ImGui::PopID();
+        }
         ImGui::EndCombo();
     }
     ImGui::SetNextItemWidth(240);
