@@ -764,6 +764,7 @@ static void StartPasscodeRead() {
 
 static void PollPasscodeJob() {
     if (!g_pwDone.load()) return;
+    g_pwDone = false;
     if (g_pwThread.joinable()) g_pwThread.join();
     g_app.radioBusy = false;
     g_app.passcodeResult = "Radio passcode: " + g_pwResult;
