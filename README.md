@@ -67,8 +67,9 @@ Not implemented:
   verified, matching codeplug back.
 - Read, set, or clear the codeplug read/write **passcode** (record
   `0x00510000`), entirely from the codeplug.
-- Copy a whole zone (channel names, frequencies/selections and entries) from one
-  codeplug into a zone of another with `--copy-zone`.
+- Copy a whole zone (channel names, frequencies/selections, per-channel
+  personalities and entries) from one codeplug into a zone of another with
+  `--copy-zone`.
 
 ## Supported models (built-in model database)
 

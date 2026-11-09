@@ -1327,6 +1327,27 @@ bool CopyZone(Codeplug& dst, const Codeplug& src, int srcZone1, int dstZone1, st
             err = "set channel page failed";
             return false;
         }
+    // Copy per-channel personality records (0x0FFB header/params, 0x0FCD data),
+    // remapping the channel index field to the destination slot.
+    for (size_t k = 0; k < dent.size(); ++k) {
+        const uint16_t srcIdx = uint16_t((sent[k][2] << 8) | sent[k][3]);
+        const uint16_t dstIdx = uint16_t((dent[k][2] << 8) | dent[k][3]);
+        for (uint16_t tag : {uint16_t(0x0FFB), uint16_t(0x0FCD)}) {
+            const Record* sr = FindRecord(src, tag, srcIdx);
+            Record* dr = FindRecord(dst, tag, dstIdx);
+            if (!sr || !dr) continue;
+            std::vector<uint8_t> np = PayloadOf(*sr);
+            // 0x0FFB begins with a 1-byte prefix then a tag(2)+inst(2) ref to 0x0FCD.
+            if (np.size() >= 5 && BE16(&np[1]) == uint16_t(0x0FCD) && BE16(&np[3]) == srcIdx) {
+                np[3] = uint8_t(dstIdx >> 8);
+                np[4] = uint8_t(dstIdx);
+            }
+            if (!SetItemPayload(dst, tag, dstIdx, np)) {
+                err = "set channel personality failed";
+                return false;
+            }
+        }
+    }
     return true;
 }
 
