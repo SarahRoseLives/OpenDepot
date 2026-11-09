@@ -482,22 +482,26 @@ def main():
         req(bytes.fromhex("01048512bf00000000"))
         req(bytes.fromhex("000f00"))
         r = req(bytes.fromhex("0300"), 3.0)
-        if r and len(r) >= 35 and r[0] == 0x83 and r[1] == 0x00:
-            key = r[3:35]
-            a2 = auth_response(key)
-            print("auth key read, sending response", flush=True)
-            req(bytes([0x03, 0x01]) + a2, 3.0)
-        else:
-            print("auth key not read:", r.hex() if r else "NONE", flush=True)
+        if not (r and len(r) >= 35 and r[0] == 0x83 and r[1] == 0x00):
+            print("AUTH CHALLENGE FAILED", r.hex() if r else None, flush=True)
+            link.s.close(); sys.exit(3)
+        a2 = auth_response(r[3:35])
+        rr = req(bytes([0x03, 0x01]) + a2, 3.0)
+        if not (rr and len(rr) >= 2 and rr[0] == 0x83 and rr[1] == 0x01):
+            print("AUTH REJECTED", rr.hex() if rr else None, flush=True)
+            link.s.close(); sys.exit(3)
+        print("auth ok", flush=True)
         req(bytes.fromhex("010881"))
         req(bytes.fromhex("010280004700000001"))
         req(bytes.fromhex("010380000201f4"))
         req(bytes.fromhex("0103800e0b0fff"))
         req(bytes.fromhex("01078000"))
+        fail = 0
         for sid in order:
             data = recs.get(sid)
             if data is None:
                 print("missing record", hex(sid), flush=True)
+                fail += 1
                 continue
             part = 0x0081 if (sid >> 16) in (0x1004, 0x1005, 0x1006) else 0x0080
             tag = sid >> 16
@@ -510,8 +514,13 @@ def main():
             print("write", hex(sid), "len", ln, flush=True)
             wr = req(bytes(body), 5.0)
             print("  reply", wr.hex() if wr else None, flush=True)
+            if not (wr and len(wr) >= 3 and wr[0] == 0x81 and wr[1] == 0x01 and wr[2] == 0x00):
+                fail += 1
         req(bytes.fromhex("01078000"))  # Send ReOrg (0x01078000) finalizes the ISH directory
         req(bytes.fromhex("010601"))
+        if fail:
+            print("WRITE FAILED: %d record(s) not accepted" % fail, flush=True)
+            link.s.close(); sys.exit(3)
         print("END", flush=True)
 
     if write_cpg:

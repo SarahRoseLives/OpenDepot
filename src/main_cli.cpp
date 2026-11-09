@@ -643,10 +643,11 @@ int wmain(int argc, wchar_t** argv) {
         Sleep(8000);
         if (!VerifyIdentityAfterWrite(std::wstring(argv[2]), cp, verr2)) {
             Sleep(4000);
-            if (!VerifyIdentityAfterWrite(std::wstring(argv[2]), cp, verr2))
-                printf("WARNING: post-write verification failed: %s\n", verr2.c_str());
-            else
-                printf("verified identity on the radio\n");
+            if (!VerifyIdentityAfterWrite(std::wstring(argv[2]), cp, verr2)) {
+                printf("WRITE FAILED: post-write verification failed: %s\n", verr2.c_str());
+                return 3;
+            }
+            printf("verified identity on the radio\n");
         } else {
             printf("verified identity on the radio\n");
         }
