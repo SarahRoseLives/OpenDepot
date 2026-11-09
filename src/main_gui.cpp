@@ -320,6 +320,9 @@ static void OpenCreateDialog() {
                 }
             }
         }
+        // Type is not stored in the codeplug; default to Model II.
+        for (int i = 0; i < (int)TypeOptions().size(); ++i)
+            if (TypeOptions()[i] == "Model II") { g_app.createType = i; break; }
         std::string fc = GetFlashcode(g_app.cp);
         snprintf(g_app.createFlash, sizeof(g_app.createFlash), "%s", fc.c_str());
         snprintf(g_app.fcBase, sizeof(g_app.fcBase), "%s", fc.c_str());
