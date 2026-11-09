@@ -38,6 +38,19 @@ static std::wstring HelperPath() {
     return d + L"\\radio_helper.exe";
 }
 
+// Bundled per-model base used for template-free codeplug creation.
+static std::wstring ModelBasePath(const std::string& model) {
+    std::wstring m(model.begin(), model.end());
+    const std::wstring d = ExeDir();
+    const wchar_t* rel[] = {L"\\resources\\models\\", L"\\..\\..\\..\\resources\\models\\",
+                            L"\\..\\resources\\models\\"};
+    for (const wchar_t* r : rel) {
+        std::wstring p = d + r + m + L".cpg";
+        if (GetFileAttributesW(p.c_str()) != INVALID_FILE_ATTRIBUTES) return p;
+    }
+    return L"";
+}
+
 static bool WriteTagListFile(const Codeplug& cp, const std::wstring& path) {
     std::vector<std::pair<uint16_t, uint16_t>> pairs;
     for (const auto& r : cp.records) {
@@ -409,6 +422,41 @@ int wmain(int argc, wchar_t** argv) {
             return 2;
         }
         printf("wrote %ls  model=%s serial=%s flashcode=%s\n", argv[3], model, serial,
+               GetFlashcode(created).c_str());
+        return 0;
+    }
+    if (cmd == L"--create-new" && argc >= 5) {
+        // Template-free: --create-new <out.cpg> <model> <serial> [flashcode]
+        char model[64] = {}, serial[64] = {}, flash[64] = {};
+        WideCharToMultiByte(CP_UTF8, 0, argv[3], -1, model, sizeof(model), nullptr, nullptr);
+        WideCharToMultiByte(CP_UTF8, 0, argv[4], -1, serial, sizeof(serial), nullptr, nullptr);
+        if (argc >= 6)
+            WideCharToMultiByte(CP_UTF8, 0, argv[5], -1, flash, sizeof(flash), nullptr, nullptr);
+        std::wstring base = ModelBasePath(model);
+        if (base.empty()) {
+            printf("NO BASE for model %s (add resources/models/<model>.cpg)\n", model);
+            return 2;
+        }
+        Codeplug tpl;
+        if (!LoadCodeplug(base, tpl)) {
+            printf("LOAD FAILED: %s\n", tpl.error.c_str());
+            return 2;
+        }
+        CreateOptions opt;
+        opt.serial = serial;
+        opt.model = model;
+        opt.flashcode = flash;
+        Codeplug created;
+        std::string err;
+        if (!CreateCodeplug(tpl, opt, created, err)) {
+            printf("CREATE FAILED: %s\n", err.c_str());
+            return 2;
+        }
+        if (!SaveCodeplug(argv[2], created, err)) {
+            printf("SAVE FAILED: %s\n", err.c_str());
+            return 2;
+        }
+        printf("wrote %ls  model=%s serial=%s flashcode=%s\n", argv[2], model, serial,
                GetFlashcode(created).c_str());
         return 0;
     }

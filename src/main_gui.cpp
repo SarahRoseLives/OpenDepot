@@ -37,6 +37,23 @@ static void CreateRenderTarget();
 static void CleanupRenderTarget();
 static LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+// Bundled per-model base for template-free codeplug creation.
+static std::wstring GuiModelBasePath(const std::string& model) {
+    wchar_t exe[MAX_PATH] = {};
+    GetModuleFileNameW(nullptr, exe, MAX_PATH);
+    std::wstring d = exe;
+    size_t i = d.find_last_of(L"\\/");
+    if (i != std::wstring::npos) d = d.substr(0, i);
+    std::wstring m(model.begin(), model.end());
+    const wchar_t* rel[] = {L"\\resources\\models\\", L"\\..\\..\\..\\resources\\models\\",
+                            L"\\..\\resources\\models\\"};
+    for (const wchar_t* r : rel) {
+        std::wstring p = d + r + m + L".cpg";
+        if (GetFileAttributesW(p.c_str()) != INVALID_FILE_ATTRIBUTES) return p;
+    }
+    return L"";
+}
+
 struct App {
     Codeplug cp;
     bool loaded = false;
@@ -403,7 +420,14 @@ static void DrawCreateDialog() {
             templ = g_app.cp;
             haveTpl = true;
         } else {
-            g_app.createError = "Choose a template .cpg";
+            // Template-free: fall back to the bundled per-model base.
+            std::wstring base = GuiModelBasePath(std::string(g_app.createModel));
+            if (!base.empty()) {
+                haveTpl = LoadCodeplug(base, templ);
+                if (!haveTpl) g_app.createError = "Bundled base load failed: " + templ.error;
+            } else {
+                g_app.createError = "No bundled base for model; choose a template .cpg";
+            }
         }
         if (haveTpl) {
             CreateOptions opt;
