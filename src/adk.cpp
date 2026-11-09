@@ -1013,6 +1013,32 @@ std::string BuiltinFirstModel() {
     return kModelCount > 0 ? std::string(kModels[0].model) : std::string();
 }
 
+void BuiltinReadRequests(std::vector<ReadRequest>& out) {
+    out.clear();
+    for (int i = 0; i < kModelCount; ++i) {
+        const ModelBlob& mb = kModels[i];
+        size_t o = 0;
+        while (o + 8 <= mb.size) {
+            uint32_t id = (uint32_t(mb.data[o]) << 24) | (uint32_t(mb.data[o + 1]) << 16) |
+                          (uint32_t(mb.data[o + 2]) << 8) | mb.data[o + 3];
+            uint16_t part = uint16_t((mb.data[o + 4] << 8) | mb.data[o + 5]);
+            uint16_t len = uint16_t((mb.data[o + 6] << 8) | mb.data[o + 7]);
+            o += 8;
+            if (o + len > mb.size) break;
+            const uint16_t tag = uint16_t(id >> 16), inst = uint16_t(id & 0xFFFF);
+            bool found = false;
+            for (auto& r : out)
+                if (r.tag == tag && r.inst == inst) {
+                    if (len > r.len) r.len = len;
+                    found = true;
+                    break;
+                }
+            if (!found) out.push_back(ReadRequest{part, tag, inst, len});
+            o += len;
+        }
+    }
+}
+
 void BuiltinTagList(std::vector<std::pair<uint16_t, uint16_t>>& out) {
     out.clear();
     for (int i = 0; i < kModelCount; ++i) {

@@ -247,6 +247,46 @@ static bool RunRawWriter(const std::wstring& port, const std::wstring& cpg, std:
     return true;
 }
 
+// Native read over OpenDepot's own PPP/TCP transport (no vendor DLL).
+static bool RunNativeReader(const std::wstring& port, const std::wstring& rec,
+                            const std::wstring& reqs, std::string& err,
+                            DWORD timeoutMs = 300000) {
+    std::wstring script = RawScriptPath();
+    if (script.empty()) {
+        err = "radio_tcp.py not found";
+        return false;
+    }
+    std::wstring cmd = L"python \"" + script + L"\" " + port + L" --native-read \"" + rec +
+                       L"\" --reqs \"" + reqs + L"\"";
+    std::vector<wchar_t> buf(cmd.begin(), cmd.end());
+    buf.push_back(0);
+    STARTUPINFOW si{};
+    si.cb = sizeof(si);
+    PROCESS_INFORMATION pi{};
+    if (!CreateProcessW(nullptr, buf.data(), nullptr, nullptr, TRUE, 0, nullptr, nullptr, &si,
+                        &pi)) {
+        err = "Cannot start native reader (" + std::to_string(GetLastError()) + ")";
+        return false;
+    }
+    const DWORD wait = WaitForSingleObject(pi.hProcess, timeoutMs);
+    DWORD code = 124;
+    if (wait == WAIT_TIMEOUT) {
+        TerminateProcess(pi.hProcess, 124);
+        WaitForSingleObject(pi.hProcess, 5000);
+        err = "native read timed out";
+    } else {
+        GetExitCodeProcess(pi.hProcess, &code);
+    }
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+    if (wait == WAIT_TIMEOUT) return false;
+    if (code != 0) {
+        err = "native reader failed (exit " + std::to_string(code) + ")";
+        return false;
+    }
+    return true;
+}
+
 static std::wstring TempPath(const wchar_t* name) {
     wchar_t dir[MAX_PATH] = {};
     GetTempPathW(MAX_PATH, dir);
@@ -565,25 +605,26 @@ int wmain(int argc, wchar_t** argv) {
             if (!first.empty()) BuiltinTemplate(first, tpl, berr);
             outPath = argv[3];
         }
-        std::wstring tags = TempPath(L"tags.bin");
-        std::wstring rec = TempPath(L"read.rec");
-        if (useTemplate) {
-            if (!WriteTagListFile(tpl, tags)) { printf("taglist write failed\n"); return 2; }
-        } else {
-            std::vector<std::pair<uint16_t, uint16_t>> pairs;
-            BuiltinTagList(pairs);
-            FILE* f = _wfopen(tags.c_str(), L"wb");
-            if (!f) { printf("taglist write failed\n"); return 2; }
-            for (auto& p : pairs) {
-                uint8_t b[4] = {uint8_t(p.first >> 8), uint8_t(p.first), uint8_t(p.second >> 8),
-                                uint8_t(p.second)};
-                fwrite(b, 1, 4, f);
-            }
-            fclose(f);
+        // Native read: compile the request list from the built-in schemas.
+        std::vector<ReadRequest> reqs;
+        BuiltinReadRequests(reqs);
+        std::wstring reqsPath = TempPath(L"read.reqs");
+        FILE* rf = _wfopen(reqsPath.c_str(), L"wb");
+        if (!rf) { printf("reqs write failed\n"); return 2; }
+        for (auto& r : reqs) {
+            uint8_t b[8] = {uint8_t(r.part >> 8), uint8_t(r.part), uint8_t(r.tag >> 8),
+                            uint8_t(r.tag),      uint8_t(r.inst >> 8), uint8_t(r.inst),
+                            uint8_t(r.len >> 8), uint8_t(r.len)};
+            fwrite(b, 1, 8, rf);
         }
+        fclose(rf);
+        std::wstring rec = TempPath(L"read.rec");
         std::string err;
-        std::wstring args = L"--read " + std::wstring(argv[2]) + L" \"" + tags + L"\" \"" + rec + L"\"";
-        if (!RunHelper(args, err, 180000)) { printf("READ FAILED: %s\n", err.c_str()); return 2; }
+        if (!RunNativeReader(std::wstring(argv[2]), rec, reqsPath, err)) {
+            printf("READ FAILED: %s\n", err.c_str());
+            DeleteFileW(reqsPath.c_str());
+            return 2;
+        }
         std::vector<uint8_t> buf;
         if (!ReadWholeFile(rec, buf)) { printf("read output missing\n"); return 2; }
         Codeplug out;
@@ -595,7 +636,7 @@ int wmain(int argc, wchar_t** argv) {
         if (!SaveCodeplug(outPath, out, err)) { printf("SAVE FAILED: %s\n", err.c_str()); return 2; }
         size_t good = 0;
         for (auto& r : out.records) if (r.verified) ++good;
-        DeleteFileW(tags.c_str());
+        DeleteFileW(reqsPath.c_str());
         DeleteFileW(rec.c_str());
         printf("read %zu records (%zu CRC-ok) -> %ls\n", out.records.size(), good, outPath.c_str());
         return good == out.records.size() ? 0 : 3;

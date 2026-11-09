@@ -111,6 +111,13 @@ struct CreateOptions {
 bool BuiltinTemplate(const std::string& model, Codeplug& out, std::string& err);
 void BuiltinTagList(std::vector<std::pair<uint16_t, uint16_t>>& out);
 std::string BuiltinFirstModel();
+struct ReadRequest {
+    uint16_t part = 0;
+    uint16_t tag = 0;
+    uint16_t inst = 0;
+    uint16_t len = 0;
+};
+void BuiltinReadRequests(std::vector<ReadRequest>& out);
 bool CreateCodeplug(const Codeplug& templ, const CreateOptions& opt, Codeplug& out,
                     std::string& err);
 bool MakeConventional(Codeplug& cp, std::string& err);

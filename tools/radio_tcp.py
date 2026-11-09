@@ -1,5 +1,5 @@
 import serial, time, struct, sys, socket
-import os, olefile, re
+import os, olefile, re, glob
 from adkcrypt import decrypt as adk_decrypt
 from cpg_decrypt import Rc4, be32 as cbe32
 
@@ -249,6 +249,8 @@ def main():
     port = "COM20"
     write_cpg = None
     replay_capture = None
+    native_read = None
+    reqs_file = None
     auth_test = False
     write_ids = [0x10040000, 0x10050000, 0x10060000]
     args = sys.argv[1:]
@@ -262,6 +264,14 @@ def main():
         if a == "--auth-test":
             auth_test = True
             i += 1
+            continue
+        if a == "--native-read" and i + 1 < len(args):
+            native_read = args[i + 1]
+            i += 2
+            continue
+        if a == "--reqs" and i + 1 < len(args):
+            reqs_file = args[i + 1]
+            i += 2
             continue
         if a == "--replay-capture" and i + 1 < len(args):
             replay_capture = args[i + 1]
@@ -528,6 +538,58 @@ def main():
         link.s.close()
         return
 
+    if native_read:
+        req(bytes.fromhex("010600"))
+        req(bytes.fromhex("000f00"))
+        req(bytes.fromhex("001100"))
+        req(bytes.fromhex("0012"))
+        req(bytes.fromhex("0300"))
+        base = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'build', 'radio-backups')
+        tpls = glob.glob(os.path.join(base, 'templates', '*.cpg')) + glob.glob(
+            os.path.join(base, 'xts2500_trunking_template.cpg'))
+        reqs = {}
+        if reqs_file:
+            data = open(reqs_file, 'rb').read()
+            for i in range(0, len(data) - 7, 8):
+                part = int.from_bytes(data[i:i+2], 'big')
+                tag = int.from_bytes(data[i+2:i+4], 'big')
+                inst = int.from_bytes(data[i+4:i+6], 'big')
+                L = int.from_bytes(data[i+6:i+8], 'big')
+                reqs[(part, tag, inst)] = L
+        else:
+          for tp in tpls:
+            try:
+                for (rid, p) in load_records(tp):
+                    tag = rid >> 16
+                    inst = rid & 0xFFFF
+                    part = 0x81 if tag in (0x1004, 0x1005, 0x1006) else 0x80
+                    key = (part, tag, inst)
+                    L = len(p)
+                    if key not in reqs or L > reqs[key]:
+                        reqs[key] = L
+            except Exception as e:
+                print("template skip", tp, e, flush=True)
+        rec = bytearray()
+        ok = 0
+        for (part, tag, inst) in sorted(reqs):
+            L = reqs[(part, tag, inst)]
+            body = bytes([0x01, 0x00, part]) + tag.to_bytes(2, 'big') + inst.to_bytes(2, 'big') + \
+                   L.to_bytes(2, 'big') + (0).to_bytes(2, 'big')
+            r = req(body, 3.0)
+            if not (r and len(r) >= 14 and r[0] == 0x81 and r[1] == 0x00 and r[2] == 0x00):
+                continue
+            retlen = int.from_bytes(r[12:14], 'big')
+            data = r[14:14 + retlen]
+            if len(data) != retlen or retlen == 0:
+                continue
+            idv = (tag << 16) | inst
+            rec += idv.to_bytes(4, 'big') + len(data).to_bytes(2, 'big') + data
+            ok += 1
+        open(native_read, 'wb').write(rec)
+        print("native read records:", ok, "bytes:", len(rec), flush=True)
+        link.s.close()
+        return
+
     if replay_capture:
         bodies = parse_capture_bodies(replay_capture)
         if "--reads-only" in sys.argv:
@@ -567,6 +629,11 @@ def main():
     req(bytes.fromhex("001100"))   # serial
     req(bytes.fromhex("0012"))     # uuid
     req(bytes.fromhex("0300"))     # secret key (read-only)
+    if "--rdtest" in sys.argv:
+        for hx in ["0100801005000000400000", "0100811005000000400000",
+                   "010080000d000000400000", "0100800034000000400000"]:
+            r = req(bytes.fromhex(hx), 3.0)
+            print("rd", hx, "->", r.hex() if r else None)
     if "--probe" in sys.argv:
         req(bytes.fromhex("0100800034000000120000"))
         req(bytes.fromhex("0100800ff0000000260000"))
