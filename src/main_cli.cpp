@@ -500,6 +500,7 @@ int wmain(int argc, wchar_t** argv) {
         printf("  opendepot-cli --radio-report <port> [--json]\n");
         printf("  opendepot-cli --doctor <in.cpg> [<out.cpg>]\n");
         printf("  opendepot-cli --diff <a.cpg> <b.cpg> [--json]\n");
+        printf("  opendepot-cli --copy-zone <src.cpg> <srcZone> <dst.cpg> <dstZone> <out.cpg>\n");
         printf("  opendepot-cli --unlock <port>\n");
         printf("  opendepot-cli --security <port>\n");
         printf("  opendepot-cli --flashcode <in.cpg> [radio|platform]\n");
@@ -948,6 +949,20 @@ int wmain(int argc, wchar_t** argv) {
         if (!LoadCodeplug(argv[2], a)) { printf("LOAD A FAILED: %s\n", a.error.c_str()); return 2; }
         if (!LoadCodeplug(argv[3], b)) { printf("LOAD B FAILED: %s\n", b.error.c_str()); return 2; }
         printf("%s", (wantJson ? DiffCodeplugsJson(a, b) : DiffCodeplugsText(a, b)).c_str());
+        return 0;
+    }
+    if (cmd == L"--copy-zone" && argc >= 7) {
+        Codeplug src, dst;
+        if (!LoadCodeplug(argv[2], src)) { printf("LOAD SRC FAILED: %s\n", src.error.c_str()); return 2; }
+        if (!LoadCodeplug(argv[4], dst)) { printf("LOAD DST FAILED: %s\n", dst.error.c_str()); return 2; }
+        std::string err;
+        if (!CopyZone(dst, src, _wtoi(argv[3]), _wtoi(argv[5]), err)) {
+            printf("COPY FAILED: %s\n", err.c_str());
+            return 2;
+        }
+        if (!SaveCodeplug(argv[6], dst, err)) { printf("SAVE FAILED: %s\n", err.c_str()); return 2; }
+        printf("copied source zone %d into destination zone %d -> %ls\n", _wtoi(argv[3]),
+               _wtoi(argv[5]), argv[6]);
         return 0;
     }
     if (cmd == L"--backup-radio" && argc >= 4) {

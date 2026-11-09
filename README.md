@@ -67,6 +67,8 @@ Not implemented:
   verified, matching codeplug back.
 - Read, set, or clear the codeplug read/write **passcode** (record
   `0x00510000`), entirely from the codeplug.
+- Copy a whole zone (channel names, frequencies/selections and entries) from one
+  codeplug into a zone of another with `--copy-zone`.
 
 ## Supported models (built-in model database)
 
@@ -186,6 +188,12 @@ opendepot-cli --check-write <in.cpg>
 opendepot-cli --write-radio <port> <in.cpg>
 opendepot-cli --erase-radio <port> [--yes-erase]
 opendepot-cli --replace-radio <port> <old.cpg> <new.cpg>
+opendepot-cli --report <in.cpg> [--json]
+opendepot-cli --radio-report <port> [--json]
+opendepot-cli --doctor <in.cpg> [<out.cpg>]
+opendepot-cli --diff <a.cpg> <b.cpg> [--json]
+opendepot-cli --copy-zone <src.cpg> <srcZone> <dst.cpg> <dstZone> <out.cpg>
+opendepot-cli --backup-radio <port> <outdir>
 ```
 
 - `--verify` returns 0 when every record verifies, 3 when any record is bad.

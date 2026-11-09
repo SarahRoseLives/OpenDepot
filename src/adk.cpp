@@ -1236,6 +1236,100 @@ bool SetChannelFreq(Codeplug& cp, int zone1, int chan1, double rxMHz, double txM
     return false;
 }
 
+bool CopyZone(Codeplug& dst, const Codeplug& src, int srcZone1, int dstZone1, std::string& err) {
+    err.clear();
+    std::vector<ZoneView> sz, dz;
+    if (!ParseZones(src, sz)) { err = "source has no zone table"; return false; }
+    if (!ParseZones(dst, dz)) { err = "target has no zone table"; return false; }
+    if (srcZone1 < 1 || srcZone1 > (int)sz.size()) { err = "source zone out of range"; return false; }
+    if (dstZone1 < 1 || dstZone1 > (int)dz.size()) { err = "target zone out of range"; return false; }
+    const int si = srcZone1 - 1, di = dstZone1 - 1;
+    if (sz[si].channels.size() != dz[di].channels.size()) {
+        err = "zone channel counts differ (" + std::to_string(sz[si].channels.size()) + " vs " +
+              std::to_string(dz[di].channels.size()) + "); cannot copy in place";
+        return false;
+    }
+    auto refTagInst = [&](const Codeplug& cp, uint16_t refTag, uint16_t inst, uint16_t& tag,
+                          uint16_t& sub) -> bool {
+        const Record* r = FindRecord(cp, refTag, inst);
+        if (!r) return false;
+        auto p = PayloadOf(*r);
+        if (p.size() < 12) return false;
+        tag = BE16(&p[8]);
+        sub = BE16(&p[10]);
+        return true;
+    };
+    // Copy channel names (0x0FFF pages).
+    uint16_t snTag = 0, snInst = 0, dnTag = 0, dnInst = 0;
+    if (!refTagInst(src, 0x0FFE, uint16_t(si), snTag, snInst)) { err = "source names ref"; return false; }
+    if (!refTagInst(dst, 0x0FFE, uint16_t(di), dnTag, dnInst)) { err = "target names ref"; return false; }
+    if (snTag != dnTag) { err = "names record tag mismatch"; return false; }
+    {
+        Record* dn = FindRecord(dst, dnTag, dnInst);
+        const Record* sn = FindRecord(src, snTag, snInst);
+        if (!dn || !sn) { err = "names record missing"; return false; }
+        auto dp = PayloadOf(*dn);
+        auto sp = PayloadOf(*sn);
+        if (dp.size() < 6 || sp.size() < 6) { err = "names payload short"; return false; }
+        const int dc = BE16(&dp[4]), sc = BE16(&sp[4]);
+        const int n = std::min(dc, sc);
+        if (6 + size_t(n) * 17 > dp.size() || 6 + size_t(n) * 17 > sp.size()) {
+            err = "names overflow";
+            return false;
+        }
+        memcpy(dp.data() + 6, sp.data() + 6, size_t(n) * 17);
+        if (!SetItemPayload(dst, dnTag, dnInst, dp)) { err = "set names failed"; return false; }
+    }
+    // Copy channel entries (0x0FFD pages); keep the destination channel index bytes [2..3].
+    uint16_t scTag = 0, scSub = 0, dcTag = 0, dcSub = 0;
+    if (!refTagInst(src, 0x0FFC, uint16_t(si), scTag, scSub)) { err = "source channel ref"; return false; }
+    if (!refTagInst(dst, 0x0FFC, uint16_t(di), dcTag, dcSub)) { err = "target channel ref"; return false; }
+    if (scTag != dcTag) { err = "channel page tag mismatch"; return false; }
+    struct Loc { uint16_t page; int idx; };
+    std::vector<Loc> slocs, dlocs;
+    std::vector<std::vector<uint8_t>> sent, dent;
+    auto collect = [&](const Codeplug& cp, uint16_t sub, std::vector<Loc>& locs,
+                       std::vector<std::vector<uint8_t>>& ents) {
+        for (uint16_t page = sub; page <= uint16_t(sub + 1); ++page) {
+            const Record* pr = FindRecord(cp, dcTag, page);
+            if (!pr) continue;
+            auto p = PayloadOf(*pr);
+            if (p.size() < 6) continue;
+            const int n = BE16(&p[4]);
+            for (int j = 0; j < n; ++j) {
+                const size_t o = 6 + size_t(j) * 35;
+                if (o + 35 > p.size()) break;
+                ents.emplace_back(p.begin() + o, p.begin() + o + 35);
+                locs.push_back({page, j});
+            }
+        }
+    };
+    collect(src, scSub, slocs, sent);
+    collect(dst, dcSub, dlocs, dent);
+    if (sent.size() != dent.size()) { err = "channel entry count mismatch"; return false; }
+    std::unordered_map<uint16_t, std::vector<uint8_t>> pages;
+    for (const auto& l : dlocs) {
+        if (!pages.count(l.page)) {
+            const Record* pr = FindRecord(dst, dcTag, l.page);
+            if (!pr) { err = "target channel page missing"; return false; }
+            pages[l.page] = PayloadOf(*pr);
+        }
+    }
+    for (size_t k = 0; k < dent.size(); ++k) {
+        std::vector<uint8_t> e = sent[k];
+        e[2] = dent[k][2];  // keep destination channel index
+        e[3] = dent[k][3];
+        auto& p = pages[dlocs[k].page];
+        memcpy(p.data() + 6 + size_t(dlocs[k].idx) * 35, e.data(), 35);
+    }
+    for (auto& kv : pages)
+        if (!SetItemPayload(dst, dcTag, kv.first, kv.second)) {
+            err = "set channel page failed";
+            return false;
+        }
+    return true;
+}
+
 bool MakeConventional(Codeplug& cp, std::string& err) {
     err.clear();
     std::vector<ZoneView> zones;
