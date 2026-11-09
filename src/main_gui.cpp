@@ -643,6 +643,7 @@ static void PollRadioJob() {
         if (!g_radioJob->isWrite && g_radioJob->result) {
             g_app.cp = std::move(*g_radioJob->result);
             g_app.loaded = true;
+            g_app.pathUtf8[0] = 0;  // read result is not backed by a file
             g_app.selected = -1;
             SyncIdentityBuffers();
             g_app.status = "Read from radio: " + std::to_string(g_app.cp.records.size()) +
